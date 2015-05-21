@@ -50,7 +50,7 @@ namespace GameOfLife
 
             for (int i = 0; i < CellGrid.Length; ++i)
             {
-                for (int j = 0; j < CellGrid[i].Length; ++j)
+                for ( int j = 0; j < CellGrid[i].Length; ++j)
                 {
                     CellGrid[i][j] = new Cell();
                 }

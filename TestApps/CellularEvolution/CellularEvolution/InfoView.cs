@@ -62,23 +62,7 @@ namespace CellularEvolution
 
             if (grid[x,y].Type == Form1.Cell.CellType.Agent)
             {
-                lblAgentFaction.Text = "Faction: " + grid[x, y].HoldingAgent.AgentColor.ToString();
-                lblAgentFood.Text = "Food: " + grid[x, y].HoldingAgent.FOOD.ToString();
-                lblAgentWater.Text = "Water: " + grid[x, y].HoldingAgent.WATER.ToString();
-                lblAgentEnergy.Text = "Energy: " + grid[x, y].HoldingAgent.ENERGY.ToString();
-                lblGeneration.Text = "Generation: " + grid[x, y].HoldingAgent.Generation.ToString();
-                lblAge.Text = "Age: " + grid[x, y].HoldingAgent.Age.ToString();
-
-                ulong instructionCount = 0;
-                Form1.Agent CurrentAgent = grid[x, y].HoldingAgent;
-
-                for (int i = 0; i < CurrentAgent.Brain.Count; ++i)
-                {
-                    instructionCount += (ulong)CurrentAgent.Brain[i].Instructions.Length;
-                }
-
-                lblInstructionCount.Text = "Instruction Count: " + instructionCount.ToString();
-                lblInstructionGroupCount.Text = "Instruction Groups: " + CurrentAgent.Brain.Count.ToString();
+                lblAgentInfo.Text = grid[x, y].HoldingAgent.GetStats();
             }
 
             lblBrushSize.Text = "Brush size: " + painterSize;

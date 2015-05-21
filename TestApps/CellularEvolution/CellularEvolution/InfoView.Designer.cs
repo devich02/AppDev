@@ -33,10 +33,7 @@
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.lblCellLocation = new System.Windows.Forms.Label();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
-            this.lblAgentEnergy = new System.Windows.Forms.Label();
-            this.lblAgentWater = new System.Windows.Forms.Label();
-            this.lblAgentFood = new System.Windows.Forms.Label();
-            this.lblAgentFaction = new System.Windows.Forms.Label();
+            this.lblAgentInfo = new System.Windows.Forms.Label();
             this.lblResourceMax = new System.Windows.Forms.Label();
             this.lblReplenishRate = new System.Windows.Forms.Label();
             this.lblResourceCount = new System.Windows.Forms.Label();
@@ -48,11 +45,7 @@
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.label2 = new System.Windows.Forms.Label();
             this.numericUpDown1 = new System.Windows.Forms.NumericUpDown();
-            this.lblGeneration = new System.Windows.Forms.Label();
-            this.lblAge = new System.Windows.Forms.Label();
             this.chkRandomAgents = new System.Windows.Forms.CheckBox();
-            this.lblInstructionCount = new System.Windows.Forms.Label();
-            this.lblInstructionGroupCount = new System.Windows.Forms.Label();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
@@ -108,14 +101,7 @@
             // 
             // groupBox2
             // 
-            this.groupBox2.Controls.Add(this.lblInstructionGroupCount);
-            this.groupBox2.Controls.Add(this.lblInstructionCount);
-            this.groupBox2.Controls.Add(this.lblAge);
-            this.groupBox2.Controls.Add(this.lblGeneration);
-            this.groupBox2.Controls.Add(this.lblAgentEnergy);
-            this.groupBox2.Controls.Add(this.lblAgentWater);
-            this.groupBox2.Controls.Add(this.lblAgentFood);
-            this.groupBox2.Controls.Add(this.lblAgentFaction);
+            this.groupBox2.Controls.Add(this.lblAgentInfo);
             this.groupBox2.Location = new System.Drawing.Point(11, 293);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.Size = new System.Drawing.Size(1028, 484);
@@ -123,41 +109,13 @@
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Agent";
             // 
-            // lblAgentEnergy
+            // lblAgentInfo
             // 
-            this.lblAgentEnergy.AutoSize = true;
-            this.lblAgentEnergy.Location = new System.Drawing.Point(6, 190);
-            this.lblAgentEnergy.Name = "lblAgentEnergy";
-            this.lblAgentEnergy.Size = new System.Drawing.Size(113, 32);
-            this.lblAgentEnergy.TabIndex = 3;
-            this.lblAgentEnergy.Text = "Energy:";
-            // 
-            // lblAgentWater
-            // 
-            this.lblAgentWater.AutoSize = true;
-            this.lblAgentWater.Location = new System.Drawing.Point(6, 148);
-            this.lblAgentWater.Name = "lblAgentWater";
-            this.lblAgentWater.Size = new System.Drawing.Size(98, 32);
-            this.lblAgentWater.TabIndex = 2;
-            this.lblAgentWater.Text = "Water:";
-            // 
-            // lblAgentFood
-            // 
-            this.lblAgentFood.AutoSize = true;
-            this.lblAgentFood.Location = new System.Drawing.Point(6, 106);
-            this.lblAgentFood.Name = "lblAgentFood";
-            this.lblAgentFood.Size = new System.Drawing.Size(88, 32);
-            this.lblAgentFood.TabIndex = 1;
-            this.lblAgentFood.Text = "Food:";
-            // 
-            // lblAgentFaction
-            // 
-            this.lblAgentFaction.AutoSize = true;
-            this.lblAgentFaction.Location = new System.Drawing.Point(6, 61);
-            this.lblAgentFaction.Name = "lblAgentFaction";
-            this.lblAgentFaction.Size = new System.Drawing.Size(117, 32);
-            this.lblAgentFaction.TabIndex = 0;
-            this.lblAgentFaction.Text = "Faction:";
+            this.lblAgentInfo.AutoSize = true;
+            this.lblAgentInfo.Location = new System.Drawing.Point(6, 61);
+            this.lblAgentInfo.Name = "lblAgentInfo";
+            this.lblAgentInfo.Size = new System.Drawing.Size(0, 32);
+            this.lblAgentInfo.TabIndex = 0;
             // 
             // lblResourceMax
             // 
@@ -264,24 +222,6 @@
             0,
             0});
             // 
-            // lblGeneration
-            // 
-            this.lblGeneration.AutoSize = true;
-            this.lblGeneration.Location = new System.Drawing.Point(6, 231);
-            this.lblGeneration.Name = "lblGeneration";
-            this.lblGeneration.Size = new System.Drawing.Size(172, 32);
-            this.lblGeneration.TabIndex = 4;
-            this.lblGeneration.Text = "Generation: ";
-            // 
-            // lblAge
-            // 
-            this.lblAge.AutoSize = true;
-            this.lblAge.Location = new System.Drawing.Point(6, 272);
-            this.lblAge.Name = "lblAge";
-            this.lblAge.Size = new System.Drawing.Size(81, 32);
-            this.lblAge.TabIndex = 5;
-            this.lblAge.Text = "Age: ";
-            // 
             // chkRandomAgents
             // 
             this.chkRandomAgents.AutoSize = true;
@@ -293,24 +233,6 @@
             this.chkRandomAgents.TabIndex = 8;
             this.chkRandomAgents.Text = "Insert random agents";
             this.chkRandomAgents.UseVisualStyleBackColor = true;
-            // 
-            // lblInstructionCount
-            // 
-            this.lblInstructionCount.AutoSize = true;
-            this.lblInstructionCount.Location = new System.Drawing.Point(6, 313);
-            this.lblInstructionCount.Name = "lblInstructionCount";
-            this.lblInstructionCount.Size = new System.Drawing.Size(244, 32);
-            this.lblInstructionCount.TabIndex = 6;
-            this.lblInstructionCount.Text = "Instruction Count: ";
-            // 
-            // lblInstructionGroupCount
-            // 
-            this.lblInstructionGroupCount.AutoSize = true;
-            this.lblInstructionGroupCount.Location = new System.Drawing.Point(6, 355);
-            this.lblInstructionGroupCount.Name = "lblInstructionGroupCount";
-            this.lblInstructionGroupCount.Size = new System.Drawing.Size(254, 32);
-            this.lblInstructionGroupCount.TabIndex = 7;
-            this.lblInstructionGroupCount.Text = "Instruction Groups:";
             // 
             // InfoView
             // 
@@ -344,10 +266,7 @@
         private System.Windows.Forms.ComboBox comboPainterType;
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.GroupBox groupBox2;
-        private System.Windows.Forms.Label lblAgentEnergy;
-        private System.Windows.Forms.Label lblAgentWater;
-        private System.Windows.Forms.Label lblAgentFood;
-        private System.Windows.Forms.Label lblAgentFaction;
+        private System.Windows.Forms.Label lblAgentInfo;
         private System.Windows.Forms.Label lblResourceMax;
         private System.Windows.Forms.Label lblReplenishRate;
         private System.Windows.Forms.Label lblResourceCount;
@@ -360,10 +279,6 @@
         private System.Windows.Forms.OpenFileDialog openFileDialog1;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.NumericUpDown numericUpDown1;
-        private System.Windows.Forms.Label lblGeneration;
-        private System.Windows.Forms.Label lblAge;
         private System.Windows.Forms.CheckBox chkRandomAgents;
-        private System.Windows.Forms.Label lblInstructionCount;
-        private System.Windows.Forms.Label lblInstructionGroupCount;
     }
 }
