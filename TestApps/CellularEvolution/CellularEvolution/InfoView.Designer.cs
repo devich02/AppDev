@@ -46,6 +46,11 @@
             this.label2 = new System.Windows.Forms.Label();
             this.numericUpDown1 = new System.Windows.Forms.NumericUpDown();
             this.chkRandomAgents = new System.Windows.Forms.CheckBox();
+            this.txtLog = new System.Windows.Forms.RichTextBox();
+            this.lblPopulation = new System.Windows.Forms.Label();
+            this.lblIteration = new System.Windows.Forms.Label();
+            this.chkTracking = new System.Windows.Forms.CheckBox();
+            this.chkTrackThisAgent = new System.Windows.Forms.CheckBox();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
@@ -101,6 +106,7 @@
             // 
             // groupBox2
             // 
+            this.groupBox2.Controls.Add(this.chkTrackThisAgent);
             this.groupBox2.Controls.Add(this.lblAgentInfo);
             this.groupBox2.Location = new System.Drawing.Point(11, 293);
             this.groupBox2.Name = "groupBox2";
@@ -112,7 +118,7 @@
             // lblAgentInfo
             // 
             this.lblAgentInfo.AutoSize = true;
-            this.lblAgentInfo.Location = new System.Drawing.Point(6, 61);
+            this.lblAgentInfo.Location = new System.Drawing.Point(6, 101);
             this.lblAgentInfo.Name = "lblAgentInfo";
             this.lblAgentInfo.Size = new System.Drawing.Size(0, 32);
             this.lblAgentInfo.TabIndex = 0;
@@ -227,18 +233,69 @@
             this.chkRandomAgents.AutoSize = true;
             this.chkRandomAgents.Checked = true;
             this.chkRandomAgents.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.chkRandomAgents.Location = new System.Drawing.Point(430, 82);
+            this.chkRandomAgents.Location = new System.Drawing.Point(432, 66);
             this.chkRandomAgents.Name = "chkRandomAgents";
             this.chkRandomAgents.Size = new System.Drawing.Size(319, 36);
             this.chkRandomAgents.TabIndex = 8;
             this.chkRandomAgents.Text = "Insert random agents";
             this.chkRandomAgents.UseVisualStyleBackColor = true;
             // 
+            // txtLog
+            // 
+            this.txtLog.Location = new System.Drawing.Point(1064, 207);
+            this.txtLog.Name = "txtLog";
+            this.txtLog.Size = new System.Drawing.Size(725, 775);
+            this.txtLog.TabIndex = 9;
+            this.txtLog.Text = "";
+            // 
+            // lblPopulation
+            // 
+            this.lblPopulation.AutoSize = true;
+            this.lblPopulation.Location = new System.Drawing.Point(429, 107);
+            this.lblPopulation.Name = "lblPopulation";
+            this.lblPopulation.Size = new System.Drawing.Size(167, 32);
+            this.lblPopulation.TabIndex = 10;
+            this.lblPopulation.Text = "Population: ";
+            // 
+            // lblIteration
+            // 
+            this.lblIteration.AutoSize = true;
+            this.lblIteration.Location = new System.Drawing.Point(700, 107);
+            this.lblIteration.Name = "lblIteration";
+            this.lblIteration.Size = new System.Drawing.Size(126, 32);
+            this.lblIteration.TabIndex = 11;
+            this.lblIteration.Text = "Iteration:";
+            // 
+            // chkTracking
+            // 
+            this.chkTracking.AutoSize = true;
+            this.chkTracking.Location = new System.Drawing.Point(757, 66);
+            this.chkTracking.Name = "chkTracking";
+            this.chkTracking.Size = new System.Drawing.Size(123, 36);
+            this.chkTracking.TabIndex = 12;
+            this.chkTracking.Text = "Track";
+            this.chkTracking.UseVisualStyleBackColor = true;
+            // 
+            // chkTrackThisAgent
+            // 
+            this.chkTrackThisAgent.AutoSize = true;
+            this.chkTrackThisAgent.Location = new System.Drawing.Point(12, 37);
+            this.chkTrackThisAgent.Name = "chkTrackThisAgent";
+            this.chkTrackThisAgent.Size = new System.Drawing.Size(266, 36);
+            this.chkTrackThisAgent.TabIndex = 13;
+            this.chkTrackThisAgent.Text = "Track This Agent";
+            this.chkTrackThisAgent.UseVisualStyleBackColor = true;
+            this.chkTrackThisAgent.CheckedChanged += new System.EventHandler(this.chkTrackThisAgent_CheckedChanged);
+            // 
             // InfoView
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(16F, 31F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1070, 994);
+            this.ClientSize = new System.Drawing.Size(1791, 994);
+            this.Controls.Add(this.chkTracking);
+            this.Controls.Add(this.lblIteration);
+            this.Controls.Add(this.lblPopulation);
+            this.Controls.Add(this.txtLog);
             this.Controls.Add(this.chkRandomAgents);
             this.Controls.Add(this.numericUpDown1);
             this.Controls.Add(this.label2);
@@ -280,5 +337,10 @@
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.NumericUpDown numericUpDown1;
         private System.Windows.Forms.CheckBox chkRandomAgents;
+        private System.Windows.Forms.RichTextBox txtLog;
+        private System.Windows.Forms.Label lblPopulation;
+        private System.Windows.Forms.Label lblIteration;
+        private System.Windows.Forms.CheckBox chkTracking;
+        private System.Windows.Forms.CheckBox chkTrackThisAgent;
     }
 }

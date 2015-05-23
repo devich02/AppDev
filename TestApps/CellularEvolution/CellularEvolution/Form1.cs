@@ -13,22 +13,26 @@ namespace CellularEvolution
     public partial class Form1 : Form
     {
 
-        int GridSquareSize = 10;
+        public static int CurrentPopulationSize = 0;
+
+        public static int GridSquareSize = 10;
+
+        public static int PopulationMax = 200;
 
         InfoView info = null;
 
+        public enum CellType
+        {
+            Water,
+            Food,
+            Grass,
+            Mud,
+            Rock,
+            Agent
+        }
+
         public class Cell
         {
-            public enum CellType
-            {
-                Water,
-                Food,
-                Grass,
-                Mud,
-                Rock,
-                Agent
-            }
-
             public CellType Type = CellType.Grass;
 
             public ulong LocalMaximumSustainability = 50000;
@@ -50,11 +54,13 @@ namespace CellularEvolution
                 OldType = Type;
                 Type = CellType.Agent;
                 HoldingAgent = a;
+                ++Form1.CurrentPopulationSize;
             }
             public void ClearAgent()
             {
                 Type = OldType;
                 HoldingAgent = null;
+                --Form1.CurrentPopulationSize;
             }
         }
 
@@ -99,19 +105,41 @@ namespace CellularEvolution
 
         public interface IAgent
         {
-            String GetStats();
             ulong IterationIndex { get; set; }
             Brush Faction { get; set; }
-            bool ExecuteOneInstruction(Grid grid);
-            IEnumerable<IAgent> BreedWith(IAgent other, Grid grid);
             IAgent Rand(int x, int y, Grid grid, Brush color);
+            bool ExecuteOneInstruction(Grid grid);
             bool CanBreed(Grid grid);
+            IEnumerable<IAgent> BreedWith(IAgent other, Grid grid);
+            String GetStats();
+            ulong GetFitness();
+
+            void SetTracking(bool bTrack);
+            bool GetTracking();
+            IEnumerable<Point> GetTrackingPoints();
         }
 
         public class Agent_1 : IAgent
         {
 
             public static Random r = new Random();
+
+            bool bTracking = false;
+            List<Point> TrackingPoints = new List<Point>();
+
+            public void SetTracking(bool bTrack)
+            {
+                bTracking = bTrack;
+                if (!bTrack)
+                {
+                    TrackingPoints.Clear();
+                }
+            }
+            public bool GetTracking()
+            {
+                return bTracking;
+            }
+            public IEnumerable<Point> GetTrackingPoints() { return TrackingPoints; }
 
             public enum Action
             {
@@ -198,10 +226,16 @@ namespace CellularEvolution
 
             public Brush Faction { get; set; }
 
-            public ulong LOCAL_MAX = 500000;
-            public ulong ENERGY = 500000;
-            public ulong FOOD = 500000;
-            public ulong WATER = 500000;
+            public ulong LOCAL_MAX = 1000000;
+            public ulong ENERGY = 10000;
+            public ulong FOOD = 10000;
+            public ulong WATER = 10000;
+            public Agent_1()
+            {
+                ENERGY = LOCAL_MAX;
+                FOOD = LOCAL_MAX;
+                WATER = LOCAL_MAX;
+            }
 
             public int Generation = 1;
 
@@ -251,13 +285,13 @@ namespace CellularEvolution
                     return false;
                 }
 
-                if (a.GetType() == typeof(Cell) && b.GetType() == typeof(Cell.CellType))
+                if (a.GetType() == typeof(Cell) && b.GetType() == typeof(CellType))
                 {
-                    return ((Cell)a).Type == ((Cell.CellType)b);
+                    return ((Cell)a).Type == ((CellType)b);
                 }
-                if (b.GetType() == typeof(Cell) && a.GetType() == typeof(Cell.CellType))
+                if (b.GetType() == typeof(Cell) && a.GetType() == typeof(CellType))
                 {
-                    return ((Cell)b).Type == ((Cell.CellType)a);
+                    return ((Cell)b).Type == ((CellType)a);
                 }
 
                 if (a.GetType() == typeof(Cell) && b.GetType() == typeof(Cell))
@@ -288,7 +322,7 @@ namespace CellularEvolution
                 switch (action)
                 {
                     case Action.Drink:
-                        if (actOn.Type == Cell.CellType.Water && actOn.ResourceCount >= 1000)
+                        if (actOn.Type == CellType.Water && actOn.ResourceCount >= 1000)
                         {
                             actOn.ResourceCount -= 1000;
                             if (WATER + 1000 < LOCAL_MAX)
@@ -298,7 +332,7 @@ namespace CellularEvolution
                         }
                         break;
                     case Action.Eat:
-                        if (actOn.Type == Cell.CellType.Food && actOn.ResourceCount >= 1000)
+                        if (actOn.Type == CellType.Food && actOn.ResourceCount >= 1000)
                         {
                             actOn.ResourceCount -= 1000;
                             if (FOOD + 1000 < LOCAL_MAX)
@@ -308,10 +342,15 @@ namespace CellularEvolution
                         }
                         break;
                     case Action.Move:
-                        if (actOn.Type != Cell.CellType.Rock && actOn.Type != Cell.CellType.Water && actOn.Type != Cell.CellType.Agent)
+                        if (actOn.Type != CellType.Rock && actOn.Type != CellType.Water && actOn.Type != CellType.Agent)
                         {
                             x = actOnX;
                             y = actOnY;
+
+                            if (bTracking)
+                            {
+                                TrackingPoints.Add(new Point((int)(x * Form1.GridSquareSize + ((float)Form1.GridSquareSize) / 2), (int)(y * Form1.GridSquareSize + ((float)Form1.GridSquareSize) / 2)));
+                            }
 
                             if (x < 0)
                                 x += grid.Width;
@@ -346,7 +385,7 @@ namespace CellularEvolution
                     for (sy = y - 10; sy < y + 10; ++sy)
                     {
                         Cell tryCell = grid[sx, sy];
-                        if (tryCell.Type == Cell.CellType.Grass || tryCell.Type == Cell.CellType.Mud)
+                        if (tryCell.Type == CellType.Grass || tryCell.Type == CellType.Mud)
                         {
                             xOut = sx;
                             yOut = sy;
@@ -360,7 +399,7 @@ namespace CellularEvolution
             }
             void AddInstructionGroupOrRandom(List<InstructionGroup> Brain, InstructionGroup addTo)
             {
-                if (Agent_1.r.Next(0, 100) < 2)
+                if (Agent_1.r.Next(0, 1000) < 2)
                 {
                     Brain.Add(InstructionGroup.Rand());
                 }
@@ -438,42 +477,42 @@ namespace CellularEvolution
                         break;
 
                     case InstructionSet.LoadWater:
-                        Registers[RegisterIndex] = Cell.CellType.Water;
+                        Registers[RegisterIndex] = CellType.Water;
                         if (++RegisterIndex == Registers.Length)
                         {
                             RegisterIndex = 0;
                         }
                         break;
                     case InstructionSet.LoadFood:
-                        Registers[RegisterIndex] = Cell.CellType.Food;
+                        Registers[RegisterIndex] = CellType.Food;
                         if (++RegisterIndex == Registers.Length)
                         {
                             RegisterIndex = 0;
                         }
                         break;
                     case InstructionSet.LoadGrass:
-                        Registers[RegisterIndex] = Cell.CellType.Grass;
+                        Registers[RegisterIndex] = CellType.Grass;
                         if (++RegisterIndex == Registers.Length)
                         {
                             RegisterIndex = 0;
                         }
                         break;
                     case InstructionSet.LoadMud:
-                        Registers[RegisterIndex] = Cell.CellType.Mud;
+                        Registers[RegisterIndex] = CellType.Mud;
                         if (++RegisterIndex == Registers.Length)
                         {
                             RegisterIndex = 0;
                         }
                         break;
                     case InstructionSet.LoadRock:
-                        Registers[RegisterIndex] = Cell.CellType.Rock;
+                        Registers[RegisterIndex] = CellType.Rock;
                         if (++RegisterIndex == Registers.Length)
                         {
                             RegisterIndex = 0;
                         }
                         break;
                     case InstructionSet.LoadAgent:
-                        Registers[RegisterIndex] = Cell.CellType.Agent;
+                        Registers[RegisterIndex] = CellType.Agent;
                         if (++RegisterIndex == Registers.Length)
                         {
                             RegisterIndex = 0;
@@ -510,20 +549,28 @@ namespace CellularEvolution
                 ++Age;
                 ++BreedAge;
 
-                if (--FOOD == 0 || --ENERGY == 0 || --WATER == 0)
+                if (--FOOD == 0 || --ENERGY == 0 || --WATER == 0 || Age >= LOCAL_MAX * 100 || r.Next(1000000) == 1)
                 {
                     // Dead
                     grid[x, y].ClearAgent();
                     return false;
                 }
+
+                if (Age > LOCAL_MAX)
+                {
+                    this.Faction = Brushes.Aquamarine;
+                }
                 return true;
             }
             public IEnumerable<IAgent> BreedWith(IAgent other, Grid grid)
             {
+                this.BreedAge = 0;
+                ((Agent_1)other).BreedAge = 0;
+
                 int AInstructionGroupCount = Brain.Count;
                 int BInstructionGroupCount = ((Agent_1)other).Brain.Count;
 
-                int CInstructionGroupCount = (int)((AInstructionGroupCount + BInstructionGroupCount) / 2.0);
+                int CInstructionGroupCount = (int)Math.Max(50, ((AInstructionGroupCount + BInstructionGroupCount) / 2.0) + r.Next(-50, 50));
 
                 Agent_1 ret = new Agent_1();
 
@@ -554,7 +601,7 @@ namespace CellularEvolution
                 ret = new Agent_1();
                 ret.Generation = this.Generation + 1;
 
-                CInstructionGroupCount = AInstructionGroupCount + BInstructionGroupCount;
+                CInstructionGroupCount = Math.Max(50, (AInstructionGroupCount + BInstructionGroupCount - r.Next(-50, 50)));
                 firstAvailable = GetFirstAvailableCell(grid, out gx, out gy);
                 if (firstAvailable != null)
                 {
@@ -579,7 +626,7 @@ namespace CellularEvolution
                 ret = new Agent_1();
                 ret.Generation = this.Generation + 1;
 
-                CInstructionGroupCount = Math.Max(AInstructionGroupCount, BInstructionGroupCount);
+                CInstructionGroupCount = Math.Max(50, (Math.Max(AInstructionGroupCount, BInstructionGroupCount) - r.Next(-50, 50)));
                 firstAvailable = GetFirstAvailableCell(grid, out gx, out gy);
                 if (firstAvailable != null)
                 {
@@ -629,7 +676,7 @@ namespace CellularEvolution
             {
                 if (FOOD > 0 && WATER > 0 && ENERGY > 0)
                 {
-                    if (BreedAge >= LOCAL_MAX + 1000 || (FOOD != WATER && Agent_1.r.Next(0, 100) < 2))
+                    if (BreedAge >= LOCAL_MAX + 1000 || (FOOD != WATER && Agent_1.r.Next(0, 10000) == 1))
                     {
                         return true;
                     }
@@ -642,6 +689,11 @@ namespace CellularEvolution
                     }
                 }
                 return false;
+            }
+
+            public ulong GetFitness()
+            {
+                return (FOOD + WATER) * 10 + ENERGY + Age;
             }
         }
 
@@ -660,7 +712,9 @@ namespace CellularEvolution
         bool brunning = false;
         bool bstep = false;
 
-        Cell.CellType painter = Cell.CellType.Grass;
+        bool bshift = false;
+
+        CellType painter = CellType.Grass;
         int paintSize = 1;
         bool sparseBrush = false;
 
@@ -668,7 +722,7 @@ namespace CellularEvolution
         bool bNeedsUpdate = false;
 
         ulong LastTotalPopulation = 0;
-        ulong IterationIndex = 0;
+        public ulong IterationIndex = 0;
 
         IAgent agentFactory = new Agent_1();
 
@@ -694,10 +748,9 @@ namespace CellularEvolution
                             for (int j = 0; j < paintSize * 2; j += 2)
                             {
                                 Cell updateCell = CellGrid[rx + i, ry + j];
-                                if (painter == Cell.CellType.Agent && CellGrid[rx + i, ry + j].Type != Cell.CellType.Agent)
+                                if (painter == CellType.Agent && CellGrid[rx + i, ry + j].Type != CellType.Agent)
                                 {
-                                    updateCell.OldType = CellGrid[rx + i, ry + j].Type;
-                                    updateCell.HoldingAgent = agentFactory.Rand(rx + i, ry + j, CellGrid, Brushes.Bisque);
+                                    updateCell.AssignAgent(agentFactory.Rand(rx + i, ry + j, CellGrid, Brushes.Bisque));
                                 }
                                 updateCell.Type = painter;
                             }
@@ -710,10 +763,9 @@ namespace CellularEvolution
                             for (int j = 0; j < paintSize; ++j)
                             {
                                 Cell updateCell = CellGrid[rx + i, ry + j];
-                                if (painter == Cell.CellType.Agent && CellGrid[rx + i, ry + j].Type != Cell.CellType.Agent)
+                                if (painter == CellType.Agent && CellGrid[rx + i, ry + j].Type != CellType.Agent)
                                 {
-                                    updateCell.OldType = CellGrid[rx + i, ry + j].Type;
-                                    updateCell.HoldingAgent = agentFactory.Rand(rx + i, ry + j, CellGrid, Brushes.Bisque);
+                                    updateCell.AssignAgent(agentFactory.Rand(rx + i, ry + j, CellGrid, Brushes.Bisque));
                                 }
                                 updateCell.Type = painter;
                             }
@@ -742,7 +794,7 @@ namespace CellularEvolution
                         for (int j = 0; j < CellGrid.Height; ++j)
                         {
                             Cell CurrentCell = CellGrid[i, j];
-                            if (CurrentCell.Type == Cell.CellType.Agent && CurrentCell.HoldingAgent.IterationIndex != IterationIndex)
+                            if (CurrentCell.Type == CellType.Agent && CurrentCell.HoldingAgent.IterationIndex != IterationIndex)
                             {
                                 ++TotalPopulation;
                                 IAgent CurrentAgent = CurrentCell.HoldingAgent;
@@ -755,7 +807,7 @@ namespace CellularEvolution
                                 }
                                 CurrentAgent.IterationIndex = IterationIndex;
                             }
-                            else if (info.InsertRandomAgents() && (CurrentCell.Type == Cell.CellType.Grass || CellGrid[i,j].Type == Cell.CellType.Mud) && LastTotalPopulation < 80 && Agent_1.r.Next(0, 10000) == 1)
+                            else if (info.InsertRandomAgents() && (CurrentCell.Type == CellType.Grass || CellGrid[i,j].Type == CellType.Mud) && LastTotalPopulation < 80 && Agent_1.r.Next(0, 10000) == 1)
                             {
                                 IAgent newRandomAgent = agentFactory.Rand(i, j, CellGrid, Brushes.Black);
                                 CurrentCell.AssignAgent(newRandomAgent);
@@ -772,19 +824,29 @@ namespace CellularEvolution
 
                     LastTotalPopulation = TotalPopulation;
 
+                    Parents.Sort((Comparison<IAgent>)((IAgent a, IAgent b) => b.GetFitness().CompareTo(a.GetFitness())));
+                    int canMake = Parents.Count;
+
                     int added = 0;
                     for (int i = 0; i < AgentsLeft;)
                     {
-                        for (int j = 1; j < AgentsLeft; ++j)
+                        added = 0;
+                        for (int j = 1; j < AgentsLeft && added <= canMake; ++j)
                         {
-                            if (Agent_1.r.Next(1, 100) > 33)
+                            if (Agent_1.r.Next(1, 100) > 50 && CurrentPopulationSize < PopulationMax)
                             {
                                 foreach (Agent_1 newAgent in Parents[i].BreedWith(Parents[j], CellGrid))
                                 {
-                                    ++added;
+                                    //info.Log("Breeding ... " + added + "/" + canMake + " (out of " + Parents.Count + " parents)");
+                                    if (++added == canMake)
+                                    {
+                                        break;
+                                    }
                                 }
                             }
                         }
+
+                        canMake -= 2;
 
                         --AgentsLeft;
                         Parents.RemoveAt(0);
@@ -800,28 +862,28 @@ namespace CellularEvolution
                 {
                     switch (CellGrid[i,j].Type)
                     {
-                        case Cell.CellType.Grass:
+                        case CellType.Grass:
                             e.Graphics.FillRectangle(Brushes.Green, i * GridSquareSize, j * GridSquareSize, GridSquareSize, GridSquareSize);
                             break;
-                        case Cell.CellType.Mud:
+                        case CellType.Mud:
                             e.Graphics.FillRectangle(Brushes.Maroon, i * GridSquareSize, j * GridSquareSize, GridSquareSize, GridSquareSize);
                             break;
-                        case Cell.CellType.Water:
+                        case CellType.Water:
                             e.Graphics.FillRectangle(Brushes.Blue, i * GridSquareSize, j * GridSquareSize, GridSquareSize, GridSquareSize);
                             break;
-                        case Cell.CellType.Rock:
+                        case CellType.Rock:
                             e.Graphics.FillRectangle(Brushes.Gray, i * GridSquareSize, j * GridSquareSize, GridSquareSize, GridSquareSize);
                             break;
-                        case Cell.CellType.Food:
+                        case CellType.Food:
                             e.Graphics.FillRectangle(Brushes.PaleVioletRed, i * GridSquareSize, j * GridSquareSize, GridSquareSize, GridSquareSize);
                             break;
-                        case Cell.CellType.Agent:
+                        case CellType.Agent:
                             e.Graphics.FillRectangle(CellGrid[i,j].HoldingAgent.Faction, i * GridSquareSize, j * GridSquareSize, GridSquareSize, GridSquareSize);
                             break;
                     }
                 }
             }
-
+            
             for (int i = 0; i < this.Width; i += GridSquareSize)
             {
                 e.Graphics.DrawLine(Pens.Black, i, 0, i, this.Height);
@@ -830,6 +892,21 @@ namespace CellularEvolution
             for (int i = 0; i < this.Height; i += GridSquareSize)
             {
                 e.Graphics.DrawLine(Pens.Black, 0, i, this.Width, i);
+            }
+            
+            for (int i = 0; i < CellGrid.Width; ++i)
+            {
+                for (int j = 0; j < CellGrid.Height; ++j)
+                {
+                    if (CellGrid[i, j].Type == CellType.Agent && CellGrid[i, j].HoldingAgent.GetTracking())
+                    {
+                        Point[] points = CellGrid[i, j].HoldingAgent.GetTrackingPoints().ToArray();
+                        if (points.Length > 1)
+                        {
+                            e.Graphics.DrawLines(Pens.Azure, points);
+                        }
+                    }
+                }
             }
 
             if (sparseBrush)
@@ -862,8 +939,11 @@ namespace CellularEvolution
 
         private void Form1_MouseMove(object sender, MouseEventArgs e)
         {
-            mx = e.X;
-            my = e.Y;
+            if (!bshift)
+            {
+                mx = e.X;
+                my = e.Y;
+            }
             bNeedsUpdate = true;
         }
 
@@ -883,11 +963,29 @@ namespace CellularEvolution
             this.Invalidate();
         }
 
+        private void Form1_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.ShiftKey)
+            {
+                bshift = false;
+            }
+        }
+
         private void Form1_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.I)
             {
                 info.Show();
+            }
+
+            if (e.KeyCode == Keys.D0)
+            {
+                IterationIndex = 0;
+            }
+
+            if (e.Shift)
+            {
+                bshift = true;
             }
 
             if (e.KeyCode == Keys.Z)
@@ -945,27 +1043,27 @@ namespace CellularEvolution
 
             if (e.KeyCode == Keys.D1)
             {
-                painter = Cell.CellType.Grass;
+                painter = CellType.Grass;
             }
             else if (e.KeyCode == Keys.D2)
             {
-                painter = Cell.CellType.Water;
+                painter = CellType.Water;
             }
             else if (e.KeyCode == Keys.D3)
             {
-                painter = Cell.CellType.Rock;
+                painter = CellType.Rock;
             }
             else if (e.KeyCode == Keys.D4)
             {
-                painter = Cell.CellType.Food;
+                painter = CellType.Food;
             }
             else if (e.KeyCode == Keys.D5)
             {
-                painter = Cell.CellType.Agent;
+                painter = CellType.Agent;
             }
             else if (e.KeyCode == Keys.D6)
             {
-                painter = Cell.CellType.Mud;
+                painter = CellType.Mud;
             }
 
             bNeedsUpdate = true;

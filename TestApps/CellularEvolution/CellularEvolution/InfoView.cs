@@ -22,34 +22,38 @@ namespace CellularEvolution
 
         Form1.Grid CellGrid = null;
 
+        Form1.IAgent LastAgent = null;
+
         public InfoView(Form1 parent)
         {
             InitializeComponent();
             HostParent = parent;
         }
 
-        public void Update(int x, int y, Form1.Grid grid, Form1.Cell.CellType painter, int painterSize)
+        public void Update(int x, int y, Form1.Grid grid, Form1.CellType painter, int painterSize)
         {
             CellGrid = grid;
 
+            lblPopulation.Text = "Population: " + Form1.CurrentPopulationSize;
+
             switch (painter)
             {
-                case Form1.Cell.CellType.Agent:
+                case Form1.CellType.Agent:
                     comboPainterType.Text = "Agent";
                     break;
-                case Form1.Cell.CellType.Food:
+                case Form1.CellType.Food:
                     comboPainterType.Text = "Food";
                     break;
-                case Form1.Cell.CellType.Grass:
+                case Form1.CellType.Grass:
                     comboPainterType.Text = "Grass";
                     break;
-                case Form1.Cell.CellType.Mud:
+                case Form1.CellType.Mud:
                     comboPainterType.Text = "Mud";
                     break;
-                case Form1.Cell.CellType.Rock:
+                case Form1.CellType.Rock:
                     comboPainterType.Text = "Rock";
                     break;
-                case Form1.Cell.CellType.Water:
+                case Form1.CellType.Water:
                     comboPainterType.Text = "Water";
                     break;
             }
@@ -60,12 +64,20 @@ namespace CellularEvolution
             lblReplenishRate.Text = "Replenish Rate: " + grid[x, y].ReplenishRate.ToString();
             lblResourceMax.Text = "Local resource max: " + grid[x, y].LocalMaximumSustainability.ToString();
 
-            if (grid[x,y].Type == Form1.Cell.CellType.Agent)
+            if (grid[x,y].Type == Form1.CellType.Agent)
             {
                 lblAgentInfo.Text = grid[x, y].HoldingAgent.GetStats();
+
+                if (LastAgent != grid[x, y].HoldingAgent)
+                {
+                    LastAgent = null;
+                    chkTrackThisAgent.Checked = grid[x, y].HoldingAgent.GetTracking();
+                }
+                LastAgent = grid[x, y].HoldingAgent;
             }
 
             lblBrushSize.Text = "Brush size: " + painterSize;
+            lblIteration.Text = "Iteration: " + HostParent.IterationIndex;
         }
 
         private void btnSaveMap_Click(object sender, EventArgs e)
@@ -85,7 +97,7 @@ namespace CellularEvolution
                 {
                     for (int j = 0; j < CellGrid.Height; ++j)
                     {
-                        bw.Write((int)(CellGrid[i, j].Type == Form1.Cell.CellType.Agent ? CellGrid[i, j].OldType : CellGrid[i, j].Type));
+                        bw.Write((int)(CellGrid[i, j].Type == Form1.CellType.Agent ? CellGrid[i, j].OldType : CellGrid[i, j].Type));
                     }
                 }
                 sw.Close();
@@ -107,7 +119,7 @@ namespace CellularEvolution
                 {
                     for (int j = 0; j < height; ++j)
                     {
-                        loadedCells[i, j].Type = (Form1.Cell.CellType)br.ReadInt32();
+                        loadedCells[i, j].Type = (Form1.CellType)br.ReadInt32();
                     }
                 }
 
@@ -126,6 +138,26 @@ namespace CellularEvolution
         public bool InsertRandomAgents()
         {
             return (bool)chkRandomAgents.Checked;
+        }
+
+        public bool TrackAgents()
+        {
+            return (bool)chkTracking.Checked;
+        }
+
+        public void Log(String s)
+        {
+            txtLog.Text += s + "\n";
+            txtLog.SelectionStart = txtLog.Text.Length;
+            txtLog.ScrollToCaret();
+        }
+
+        private void chkTrackThisAgent_CheckedChanged(object sender, EventArgs e)
+        {
+            if (LastAgent != null)
+            {
+                LastAgent.SetTracking(chkTrackThisAgent.Checked);
+            }
         }
     }
 }
