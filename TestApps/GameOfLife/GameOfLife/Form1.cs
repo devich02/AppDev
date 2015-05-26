@@ -39,7 +39,7 @@ namespace GameOfLife
 
         class Rule
         {
-            public Cell.CellState[][] m_RuleBehavior; // bool[2][9] with 0,1 -> aliveness, and 0-8 possible neighbor counts
+            public Cell.CellState[][] RuleBehavior; // bool[2][9] with 0,1 -> aliveness, and 0-8 possible neighbor counts
             /* RuleBehavior[0][i] indicates aliveness corresponding to i neighbors around a dead cell.
              * RuleBehavior[1][i] indicates aliveness corresponding to i neighbors around a live cell.
              * in other words,
@@ -52,9 +52,9 @@ namespace GameOfLife
                 // default to Game of Life for now
 
                 // better way to do this?
-                this.m_RuleBehavior = new Cell.CellState[2][];
-                this.m_RuleBehavior[0] = new Cell.CellState[9];
-                this.m_RuleBehavior[1] = new Cell.CellState[9];
+                this.RuleBehavior = new Cell.CellState[2][];
+                this.RuleBehavior[0] = new Cell.CellState[9];
+                this.RuleBehavior[1] = new Cell.CellState[9];
 
                 SetRuleFromClassic(2, 3, 3, 3);
             }
@@ -62,9 +62,9 @@ namespace GameOfLife
             public Rule(int a,int b,int c,int d)
             {
                 // better way to do this?
-                this.m_RuleBehavior = new Cell.CellState[2][];
-                this.m_RuleBehavior[0] = new Cell.CellState[9];
-                this.m_RuleBehavior[1] = new Cell.CellState[9];
+                this.RuleBehavior = new Cell.CellState[2][];
+                this.RuleBehavior[0] = new Cell.CellState[9];
+                this.RuleBehavior[1] = new Cell.CellState[9];
 
                 SetRuleFromClassic(a, b, c, d);
             }
@@ -80,8 +80,8 @@ namespace GameOfLife
 
                 for (int i = 0; i < 9; i++)
                 {
-                    this.m_RuleBehavior[0][i] = (i >= c && i <= d) ? Cell.CellState.Alive : Cell.CellState.Dead; // currently dead updates
-                    this.m_RuleBehavior[1][i] = (i >= a && i <= b) ? Cell.CellState.Alive : Cell.CellState.Dead; // currently alive updates
+                    this.RuleBehavior[0][i] = (i >= c && i <= d) ? Cell.CellState.Alive : Cell.CellState.Dead; // currently dead updates
+                    this.RuleBehavior[1][i] = (i >= a && i <= b) ? Cell.CellState.Alive : Cell.CellState.Dead; // currently alive updates
                 }
 
             }
@@ -91,7 +91,7 @@ namespace GameOfLife
             public Cell.CellState GetNewCellStateFromRule(int numNeighbors, Cell.CellState alive)
             {
                 /* interface between cell and rule when updating cells */
-                return (alive == Cell.CellState.Alive) ? m_RuleBehavior[1][numNeighbors] : m_RuleBehavior[0][numNeighbors];
+                return (alive == Cell.CellState.Alive) ? RuleBehavior[1][numNeighbors] : RuleBehavior[0][numNeighbors];
             }
         }
 
