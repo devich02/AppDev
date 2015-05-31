@@ -15,6 +15,8 @@ namespace GameOfLife
 
         const int GridSquareSize = 20;
 
+        Props Properties = new Props();
+
         class Cell
         {
             public enum CellState
@@ -165,7 +167,6 @@ namespace GameOfLife
 
         class Ship
         {
-
             public enum ShipState
             {
                 Alive,
@@ -187,8 +188,6 @@ namespace GameOfLife
                 /* set initial ship position */
                 this.m_Pos = new int[2] { a, b };
             }
-
-
         }
 
         Grid CellGrid;
@@ -201,7 +200,7 @@ namespace GameOfLife
 
             R = new Rule(); // this is the default constructor --> Game of Life Rule
 
-            this.ClientSize = new Size(800, 700);
+            this.ClientSize = new Size(800, 600);
             CellGrid = new Grid(800 / GridSquareSize, 600 / GridSquareSize);
 
             // initialize ship
@@ -219,13 +218,12 @@ namespace GameOfLife
         MouseButtons mbutton = MouseButtons.Left;
         bool brunning = false;
         bool bstepping = false;
-        private long llIterationDelay = 0;
         long llLastUpdate = 0;
+
+        bool[] KeysDown = new bool[256];
 
         private void Form1_Paint(object sender, PaintEventArgs e)
         {
-            e.Graphics.TranslateTransform(0, 100);
-
             int rx = mx / GridSquareSize;
             int ry = my / GridSquareSize;
 
@@ -266,7 +264,7 @@ namespace GameOfLife
             ////////////////////////////////
             // Game State Update
             ////////////////////////////////
-            if (brunning  && (DateTime.Now.Ticks - llLastUpdate) > llIterationDelay)
+            if (brunning  && (DateTime.Now.Ticks - llLastUpdate) > Properties.IterationDelay)
             {
                 llLastUpdate = DateTime.Now.Ticks;
 
@@ -277,7 +275,6 @@ namespace GameOfLife
                         CellGrid[i, j].m_NextState = R.GetNewCellStateFromRule(CellGrid.AliveNeighbors(i, j), CellGrid[i, j].m_State);
                     }
                 }
-
 
                 for (int i =0; i < CellGrid.Width; ++i)
                 {
@@ -292,6 +289,26 @@ namespace GameOfLife
             {
                 brunning = false;
             }
+
+
+
+            if (KeysDown[(int)Keys.A])
+            {
+                PlayerShip.m_Pos[0]--;
+            }
+            if (KeysDown[(int)Keys.D])
+            {
+                PlayerShip.m_Pos[0]++;
+            }
+            if (KeysDown[(int)Keys.W])
+            {
+                PlayerShip.m_Pos[1]--;
+            }
+            if (KeysDown[(int)Keys.S])
+            {
+                PlayerShip.m_Pos[1]++;
+            }
+            
         }
 
         private void Form1_MouseDown(object sender, MouseEventArgs e)
@@ -331,21 +348,11 @@ namespace GameOfLife
                 }
             }
 
-            if (e.KeyCode == Keys.A)
+            KeysDown[(int)e.KeyCode] = true;
+
+            if (e.KeyCode == Keys.I)
             {
-                PlayerShip.m_Pos[0]--;
-            }
-            if (e.KeyCode == Keys.D)
-            {
-                PlayerShip.m_Pos[0]++;
-            }
-            if (e.KeyCode == Keys.W)
-            {
-                PlayerShip.m_Pos[1]--;
-            }
-            if (e.KeyCode == Keys.S)
-            {
-                PlayerShip.m_Pos[1]++;
+                Properties.Show();
             }
         }
 
@@ -354,15 +361,15 @@ namespace GameOfLife
 
         }
 
-        private void numericUpDown1_ValueChanged(object sender, EventArgs e)
+        private void Form1_KeyUp(object sender, KeyEventArgs e)
         {
-            llIterationDelay = (long)(numericUpDown1.Value * 10000);
+            KeysDown[(int)e.KeyCode] = false;
         }
 
         private void Form1_MouseMove(object sender, MouseEventArgs e)
         {
             mx = e.X;
-            my = e.Y - 100;
+            my = e.Y;
         }
     }
 }
