@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using System.Drawing;
+
 namespace VecLib
 {
     public class vec2
@@ -83,6 +85,15 @@ namespace VecLib
         }
 
         public static readonly vec2 zero = new vec2(0, 0);
+
+        public static implicit operator Point(vec2 a)
+        {
+            return new Point(a.x, a.y);
+        }
+        public static implicit operator PointF(vec2 a)
+        {
+            return new PointF(a.x, a.y);
+        }
     }
 
     public class vec2f
@@ -162,6 +173,15 @@ namespace VecLib
         }
 
         public static readonly vec2f zero = new vec2f(0, 0);
+
+        public static implicit operator Point(vec2f a)
+        {
+            return new Point((int)a.x, (int)a.y);
+        }
+        public static implicit operator PointF(vec2f a)
+        {
+            return new PointF(a.x, a.y);
+        }
     }
   
     public class vec2d
@@ -241,5 +261,14 @@ namespace VecLib
         }
 
         public static readonly vec2d zero = new vec2d(0, 0);
+
+        public static implicit operator Point(vec2d a)
+        {
+            return new Point((int)a.x, (int)a.y);
+        }
+        public static implicit operator PointF(vec2d a)
+        {
+            return new PointF((float)a.x, (float)a.y);
+        }
     }
 }
