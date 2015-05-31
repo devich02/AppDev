@@ -24,13 +24,14 @@ namespace GameOfLife
             public enum CellState
             {
                 Alive,
-                Dead
+                Dead,
+                Ship // Also alive
             }
 
             public CellState m_State = CellState.Dead;
             public CellState m_NextState = CellState.Dead;
 
-            public bool m_ShipHere = false; // if m_ShipHere, always count as alive and don't update (not used yet)
+            public bool Alive {  get { return m_State == CellState.Alive || m_State == CellState.Ship; } }
 
             public Cell(){}
         }
@@ -103,9 +104,19 @@ namespace GameOfLife
                 int aliveCount = 0;
                 for (int k = 0; k < m_AllDirections.Length; ++k)
                 {
-                    aliveCount += m_AllDirections[k](i, j).m_State == Cell.CellState.Alive ? 1 : 0;
+                    aliveCount += m_AllDirections[k](i, j).Alive ? 1 : 0;
                 }
                 return aliveCount;
+            }
+
+            public int ShipNeighbors(int i, int j)
+            {
+                int shipCount = 0;
+                for (int k = 0; k < m_AllDirections.Length; ++k)
+                {
+                    shipCount += m_AllDirections[k](i, j).m_State == Cell.CellState.Ship ? 1 : 0;
+                }
+                return shipCount;
             }
         }
 
@@ -160,61 +171,35 @@ namespace GameOfLife
 
             /* should implement custom rule creation (i.e., anything other than classic) here */
 
-            public Cell.CellState GetNewCellStateFromRule(int numNeighbors, Cell.CellState alive)
+            public Cell.CellState GetNewCellStateFromRule(int numNeighbors, int shipNeighbors, bool isAlive)
             {
                 /* interface between cell and rule when updating cells */
-                return (alive == Cell.CellState.Alive) ? m_RuleBehavior[1][numNeighbors] : m_RuleBehavior[0][numNeighbors];
+                Cell.CellState state = isAlive ? m_RuleBehavior[1][numNeighbors] : m_RuleBehavior[0][numNeighbors];
+                if (state == Cell.CellState.Alive)
+                {
+                    if (shipNeighbors >= (numNeighbors / 2))
+                    {
+                        return Cell.CellState.Ship;
+                    }
+                    else
+                    {
+                        return Cell.CellState.Alive;
+                    }
+                }
+                return Cell.CellState.Dead;
             }
         }
 
         class Ship
         {
-            public enum ShipState
-            {
-                Alive,
-                Dead
-            }
-
-            public ShipState m_State = ShipState.Dead;
-            public ShipState m_NextState = ShipState.Dead;
-            public vec2 m_Pos; // (x,y) position of center of ship
+            public List<vec2> m_CellPositions = new List<vec2>();
             public Rectangle m_Bounds; // (x, y, w, h) bounds of existence of the ship
 
-            public Ship()
-            {
-                // This constructor doesn't really make sense, since we need bounds
-                this.m_Pos = vec2.zero;
-            }
+            public Ship() { }
 
-            public Ship(int a, int b, Rectangle bounds)
+            public Ship(Rectangle Bounds)
             {
-                this.m_Pos = new vec2(a, b);
-                this.m_Bounds = bounds;
-            }
-
-            public int x
-            {
-                get { return m_Pos.x; }
-                set
-                {
-                    m_Pos.x = Grid.WrapMod(value - m_Bounds.X, m_Bounds.Width) + m_Bounds.X;
-                }
-            }
-            public int y
-            {
-                get { return m_Pos.y; }
-                set
-                {
-                    // Wrap around
-                    //m_Pos.y = Grid.WrapMod(value - m_Bounds.Y, m_Bounds.Height) + m_Bounds.Y;
-                    // Block
-                    
-                    if (value >= m_Bounds.Y && value < m_Bounds.Y + m_Bounds.Height)
-                    {
-                        m_Pos.y = value;
-                    }
-                    
-                }
+                m_Bounds = Bounds;
             }
         }
 
@@ -232,10 +217,8 @@ namespace GameOfLife
             CellGrid = new Grid(800 / GridSquareSize, 600 / GridSquareSize);
 
             // initialize ship
-            int twentyPercentHeight = (int)(CellGrid.Height * .2);
-
-            // Restrict ship to bottom 20% of screen
-            PlayerShip = new Ship(20, CellGrid.Height - twentyPercentHeight, new Rectangle(0, CellGrid.Height - twentyPercentHeight, CellGrid.Width, twentyPercentHeight));
+            // Do not restrict the ship
+            PlayerShip = new Ship(new Rectangle(0, 0, CellGrid.Width, CellGrid.Height));
         }
 
         private void timer1_Tick(object sender, EventArgs e)
@@ -251,6 +234,8 @@ namespace GameOfLife
         bool bstepping = false;
         long llLastUpdate = 0;
 
+        bool bPaintShip = false;
+
         bool[] KeysDown = new bool[256];
 
         private void Form1_Paint(object sender, PaintEventArgs e)
@@ -258,12 +243,28 @@ namespace GameOfLife
             int rx = mx / GridSquareSize;
             int ry = my / GridSquareSize;
 
-            e.Graphics.FillRectangle(Brushes.Orange, rx * GridSquareSize, ry * GridSquareSize, GridSquareSize, GridSquareSize);
+            if (bPaintShip)
+            {
+                e.Graphics.FillRectangle(new SolidBrush(Color.FromArgb(100, Color.Black)), rx * GridSquareSize, ry * GridSquareSize, GridSquareSize, GridSquareSize);
+            }
+            else
+            {
+                e.Graphics.FillRectangle(new SolidBrush(Color.FromArgb(100, Color.LightGreen)), rx * GridSquareSize, ry * GridSquareSize, GridSquareSize, GridSquareSize);
+            }
 
             if (mdown)
             {
                 if (mbutton == MouseButtons.Left)
-                    CellGrid[rx, ry].m_State = Cell.CellState.Alive;
+                {
+                    if (bPaintShip)
+                    {
+                        CellGrid[rx, ry].m_State = Cell.CellState.Ship;
+                    }
+                    else
+                    {
+                        CellGrid[rx, ry].m_State = Cell.CellState.Alive;
+                    }
+                }
                 else
                     CellGrid[rx, ry].m_State = Cell.CellState.Dead;
             }
@@ -275,6 +276,10 @@ namespace GameOfLife
                     if (CellGrid[i, j].m_State == Cell.CellState.Alive)
                     {
                         e.Graphics.FillRectangle(Brushes.LightGreen, i * GridSquareSize, j * GridSquareSize, GridSquareSize, GridSquareSize);
+                    }
+                    else if (CellGrid[i, j].m_State == Cell.CellState.Ship)
+                    {
+                        e.Graphics.FillRectangle(Brushes.Black, i * GridSquareSize, j * GridSquareSize, GridSquareSize, GridSquareSize);
                     }
                 }
             }
@@ -289,9 +294,6 @@ namespace GameOfLife
                 e.Graphics.DrawLine(Pens.Black, 0, i, this.Width, i);
             }
 
-            // Draw Ship
-            e.Graphics.FillRectangle(Brushes.Black, PlayerShip.x * GridSquareSize, PlayerShip.y * GridSquareSize, GridSquareSize, GridSquareSize);
-
             ////////////////////////////////
             // Game State Update
             ////////////////////////////////
@@ -303,17 +305,124 @@ namespace GameOfLife
                 {
                     for (int j = 0; j < CellGrid.Height; ++j)
                     {
-                        CellGrid[i, j].m_NextState = R.GetNewCellStateFromRule(CellGrid.AliveNeighbors(i, j), CellGrid[i, j].m_State);
+                        CellGrid[i, j].m_NextState = R.GetNewCellStateFromRule(CellGrid.AliveNeighbors(i, j), CellGrid.ShipNeighbors(i, j), CellGrid[i, j].Alive);
                     }
                 }
 
-                for (int i =0; i < CellGrid.Width; ++i)
+                for (int i = 0; i < CellGrid.Width; ++i)
                 {
                     for (int j = 0; j < CellGrid.Height; ++j)
                     {
                         CellGrid[i, j].m_State = CellGrid[i, j].m_NextState;
                     }
                 }
+
+                // Move the ship, process one set of directions at a time
+
+                if (KeysDown[(int)Keys.A])
+                {
+                    for (int i = 0; i < CellGrid.Width; ++i)
+                    {
+                        for (int j = 0; j < CellGrid.Height; ++j)
+                        {
+                            if (CellGrid[i, j].m_State == Cell.CellState.Ship)
+                            {
+                                if (CellGrid[i + 1, j].m_State != Cell.CellState.Ship)
+                                {
+                                    CellGrid[i, j].m_NextState = Cell.CellState.Dead;
+                                }
+                                CellGrid[i - 1, j].m_NextState = Cell.CellState.Ship;
+                            }
+                        }
+                    }
+
+                    for (int i = 0; i < CellGrid.Width; ++i)
+                    {
+                        for (int j = 0; j < CellGrid.Height; ++j)
+                        {
+                            CellGrid[i, j].m_State = CellGrid[i, j].m_NextState;
+                        }
+                    }
+                }
+
+                if (KeysDown[(int)Keys.D])
+                {
+                    for (int i = 0; i < CellGrid.Width; ++i)
+                    {
+                        for (int j = 0; j < CellGrid.Height; ++j)
+                        {
+                            if (CellGrid[i, j].m_State == Cell.CellState.Ship)
+                            {
+                                if (CellGrid[i - 1, j].m_State != Cell.CellState.Ship)
+                                {
+                                    CellGrid[i, j].m_NextState = Cell.CellState.Dead;
+                                }
+                                CellGrid[i + 1, j].m_NextState = Cell.CellState.Ship;
+                            }
+                        }
+                    }
+
+                    for (int i = 0; i < CellGrid.Width; ++i)
+                    {
+                        for (int j = 0; j < CellGrid.Height; ++j)
+                        {
+                            CellGrid[i, j].m_State = CellGrid[i, j].m_NextState;
+                        }
+                    }
+                }
+
+                if (KeysDown[(int)Keys.W])
+                {
+                    for (int i = 0; i < CellGrid.Width; ++i)
+                    {
+                        for (int j = 0; j < CellGrid.Height; ++j)
+                        {
+                            if (CellGrid[i, j].m_State == Cell.CellState.Ship)
+                            {
+                                if (CellGrid[i, j + 1].m_State != Cell.CellState.Ship)
+                                {
+                                    CellGrid[i, j].m_NextState = Cell.CellState.Dead;
+                                }
+                                CellGrid[i, j - 1].m_NextState = Cell.CellState.Ship;
+                            }
+                        }
+                    }
+
+                    for (int i = 0; i < CellGrid.Width; ++i)
+                    {
+                        for (int j = 0; j < CellGrid.Height; ++j)
+                        {
+                            CellGrid[i, j].m_State = CellGrid[i, j].m_NextState;
+                        }
+                    }
+                }
+
+                if (KeysDown[(int)Keys.S])
+                {
+                    for (int i = 0; i < CellGrid.Width; ++i)
+                    {
+                        for (int j = 0; j < CellGrid.Height; ++j)
+                        {
+                            if (CellGrid[i, j].m_State == Cell.CellState.Ship)
+                            {
+                                if (CellGrid[i, j - 1].m_State != Cell.CellState.Ship)
+                                {
+                                    CellGrid[i, j].m_NextState = Cell.CellState.Dead;
+                                }
+                                CellGrid[i, j + 1].m_NextState = Cell.CellState.Ship;
+                            }
+                        }
+                    }
+
+                    for (int i = 0; i < CellGrid.Width; ++i)
+                    {
+                        for (int j = 0; j < CellGrid.Height; ++j)
+                        {
+                            CellGrid[i, j].m_State = CellGrid[i, j].m_NextState;
+                        }
+                    }
+                }
+
             }
 
             if (bstepping && brunning)
@@ -323,22 +432,6 @@ namespace GameOfLife
 
 
 
-            if (KeysDown[(int)Keys.A])
-            {
-                PlayerShip.x--;
-            }
-            if (KeysDown[(int)Keys.D])
-            {
-                PlayerShip.x++;
-            }
-            if (KeysDown[(int)Keys.W])
-            {
-                PlayerShip.y--;
-            }
-            if (KeysDown[(int)Keys.S])
-            {
-                PlayerShip.y++;
-            }
             
         }
 
@@ -365,6 +458,15 @@ namespace GameOfLife
                 {
                     brunning = true;
                 }
+            }
+
+            if (e.KeyCode == Keys.D2)
+            {
+                bPaintShip = true;
+            }
+            else if (e.KeyCode == Keys.D1)
+            {
+                bPaintShip = false;
             }
 
             if (e.KeyCode == Keys.T)
