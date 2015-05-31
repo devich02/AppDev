@@ -8,6 +8,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
+using VecLib;
+
 namespace GameOfLife
 {
     public partial class Form1 : Form
@@ -83,7 +85,7 @@ namespace GameOfLife
                 }
             }
 
-            private int WrapMod(int x, int m)
+            public static int WrapMod(int x, int m)
             {
                 int r = x % m;
                 return r < 0 ? r + m : r;
@@ -175,18 +177,44 @@ namespace GameOfLife
 
             public ShipState m_State = ShipState.Dead;
             public ShipState m_NextState = ShipState.Dead;
-            public int[] m_Pos; // (x,y) position of center of ship
+            public vec2 m_Pos; // (x,y) position of center of ship
+            public Rectangle m_Bounds; // (x, y, w, h) bounds of existence of the ship
 
             public Ship()
             {
-                /* define default initial ship position */
-                this.m_Pos = new int[2] {10,10}; 
+                // This constructor doesn't really make sense, since we need bounds
+                this.m_Pos = vec2.zero;
             }
 
-            public Ship(int a, int b)
+            public Ship(int a, int b, Rectangle bounds)
             {
-                /* set initial ship position */
-                this.m_Pos = new int[2] { a, b };
+                this.m_Pos = new vec2(a, b);
+                this.m_Bounds = bounds;
+            }
+
+            public int x
+            {
+                get { return m_Pos.x; }
+                set
+                {
+                    m_Pos.x = Grid.WrapMod(value - m_Bounds.X, m_Bounds.Width) + m_Bounds.X;
+                }
+            }
+            public int y
+            {
+                get { return m_Pos.y; }
+                set
+                {
+                    // Wrap around
+                    //m_Pos.y = Grid.WrapMod(value - m_Bounds.Y, m_Bounds.Height) + m_Bounds.Y;
+                    // Block
+                    
+                    if (value >= m_Bounds.Y && value < m_Bounds.Y + m_Bounds.Height)
+                    {
+                        m_Pos.y = value;
+                    }
+                    
+                }
             }
         }
 
@@ -204,7 +232,10 @@ namespace GameOfLife
             CellGrid = new Grid(800 / GridSquareSize, 600 / GridSquareSize);
 
             // initialize ship
-            PlayerShip = new Ship(20,20);
+            int twentyPercentHeight = (int)(CellGrid.Height * .2);
+
+            // Restrict ship to bottom 20% of screen
+            PlayerShip = new Ship(20, CellGrid.Height - twentyPercentHeight, new Rectangle(0, CellGrid.Height - twentyPercentHeight, CellGrid.Width, twentyPercentHeight));
         }
 
         private void timer1_Tick(object sender, EventArgs e)
@@ -259,7 +290,7 @@ namespace GameOfLife
             }
 
             // Draw Ship
-            e.Graphics.FillRectangle(Brushes.Black, PlayerShip.m_Pos[0] * GridSquareSize, PlayerShip.m_Pos[1] * GridSquareSize, GridSquareSize, GridSquareSize);
+            e.Graphics.FillRectangle(Brushes.Black, PlayerShip.x * GridSquareSize, PlayerShip.y * GridSquareSize, GridSquareSize, GridSquareSize);
 
             ////////////////////////////////
             // Game State Update
@@ -294,19 +325,19 @@ namespace GameOfLife
 
             if (KeysDown[(int)Keys.A])
             {
-                PlayerShip.m_Pos[0]--;
+                PlayerShip.x--;
             }
             if (KeysDown[(int)Keys.D])
             {
-                PlayerShip.m_Pos[0]++;
+                PlayerShip.x++;
             }
             if (KeysDown[(int)Keys.W])
             {
-                PlayerShip.m_Pos[1]--;
+                PlayerShip.y--;
             }
             if (KeysDown[(int)Keys.S])
             {
-                PlayerShip.m_Pos[1]++;
+                PlayerShip.y++;
             }
             
         }
