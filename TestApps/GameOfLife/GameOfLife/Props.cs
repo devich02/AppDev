@@ -18,6 +18,7 @@ namespace GameOfLife
         }
 
         public int IterationDelay {  get { return (int)numIterationDelay.Value * 10000; } }
+        public int CannonCount { get { return (int)numCannons.Value; } }
 
         private void Props_FormClosing(object sender, FormClosingEventArgs e)
         {

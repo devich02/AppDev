@@ -208,6 +208,8 @@ namespace GameOfLife
             this.ClientSize = new Size(800, 600);
             CellGrid = new Grid(800 / GridSquareSize, 600 / GridSquareSize);
 
+            TopShipInEachColumn = new int[CellGrid.Width];
+
             // initialize ship
             // Do not restrict the ship
             PlayerShip = new Ship(new Rectangle(0, 0, CellGrid.Width, CellGrid.Height));
@@ -227,6 +229,12 @@ namespace GameOfLife
         long llLastUpdate = 0;
 
         bool bPaintShip = false;
+
+        List<vec2> listVecCannons = new List<vec2>();
+        List<vec2> listVecCannonsIntermediate = new List<vec2>();
+        int iFireCount = 1;
+        bool bNeedToRecalculateCannon = true;
+        int[] TopShipInEachColumn = null;
 
         bool[] KeysDown = new bool[256];
 
@@ -297,7 +305,19 @@ namespace GameOfLife
             {
                 llLastUpdate = DateTime.Now.Ticks;
 
-                vec2 vecCannon = new vec2(0, CellGrid.Height);
+                iFireCount = Properties.CannonCount;
+
+                if (bNeedToRecalculateCannon)
+                {
+                    for (int i = 0; i < TopShipInEachColumn.Length; ++i)
+                    {
+                        TopShipInEachColumn[i] = int.MaxValue;
+                    }
+                    listVecCannons.Clear();
+                    listVecCannonsIntermediate.Clear();
+                }
+
+                int iTopShipCount = 0;
 
                 // Regular update loop
                 for (int i = 0; i < CellGrid.Width; ++i)
@@ -305,38 +325,75 @@ namespace GameOfLife
                     for (int j = 0; j < CellGrid.Height; ++j)
                     {
                         Cell.CellState currentState = CellGrid[i, j].State;
-                        
-                        if (currentState != Cell.CellState.Bullet)
-                        {
-                            Cell.CellState nextState = R.GetNewCellStateFromRule(CellGrid.AliveNeighbors(i, j), CellGrid[i, j].Alive);
 
-                            if (nextState == Cell.CellState.Dead)
+                        Cell.CellState nextState = R.GetNewCellStateFromRule(CellGrid.AliveNeighbors(i, j), CellGrid[i, j].Alive);
+
+                        if (nextState == Cell.CellState.Dead)
+                        {
+                            CellGrid[i, j].NextState = Cell.CellState.Dead;
+                        }
+                        else if (currentState == Cell.CellState.Ship)
+                        {
+                            if (j < TopShipInEachColumn[i])
                             {
-                                CellGrid[i, j].NextState = Cell.CellState.Dead;
+                                TopShipInEachColumn[i] = j;
+                                ++iTopShipCount;
                             }
-                            else if (currentState == Cell.CellState.Ship)
+                            CellGrid[i, j].NextState = Cell.CellState.Ship;
+                        }
+                        else if (currentState == Cell.CellState.Dead)
+                        {
+                            if (CellGrid.ShipNeighbors(i, j) > CellGrid.AliveNeighbors(i, j) / 2)
                             {
-                                if (j < vecCannon.y)
-                                {
-                                    vecCannon = new vec2(i, j);
-                                }
                                 CellGrid[i, j].NextState = Cell.CellState.Ship;
-                            }
-                            else if (currentState == Cell.CellState.Dead)
-                            {
-                                if (CellGrid.ShipNeighbors(i, j) > CellGrid.AliveNeighbors(i, j) / 2)
-                                {
-                                    CellGrid[i, j].NextState = Cell.CellState.Ship;
-                                }
-                                else
-                                {
-                                    CellGrid[i, j].NextState = Cell.CellState.Alive;
-                                }
                             }
                             else
                             {
                                 CellGrid[i, j].NextState = Cell.CellState.Alive;
                             }
+                        }
+                        else if (currentState == Cell.CellState.Bullet)
+                        {
+                            if (CellGrid.ShipNeighbors(i, j) > CellGrid.AliveNeighbors(i, j) / 2)
+                            {
+                                CellGrid[i, j].State = Cell.CellState.Dead;
+                                CellGrid[i, j].NextState = Cell.CellState.Ship;
+                            }
+                        }
+                        else
+                        {
+                            CellGrid[i, j].NextState = Cell.CellState.Alive;
+                        }
+                    }
+                }
+
+                if (bNeedToRecalculateCannon && iTopShipCount > 0)
+                {
+                    if (iTopShipCount < iFireCount)
+                    {
+                        for (int i = 0; i < TopShipInEachColumn.Length; ++i)
+                        {
+                            if (TopShipInEachColumn[i] != int.MaxValue)
+                            {
+                                listVecCannons.Add(new vec2(i, TopShipInEachColumn[i]));
+                            }
+                        }
+                    }
+                    else
+                    {
+                        for (int i = 0; i < TopShipInEachColumn.Length; ++i)
+                        {
+                            if (TopShipInEachColumn[i] != int.MaxValue)
+                            {
+                                listVecCannonsIntermediate.Add(new vec2(i, TopShipInEachColumn[i]));
+                            }
+                        }
+
+                        float fStart = iTopShipCount / (2.0f * iFireCount);
+                        float fSkip = iTopShipCount / ((float)iFireCount);
+                        for (; ((int)fStart) < iTopShipCount; fStart += fSkip)
+                        {
+                            listVecCannons.Add(listVecCannonsIntermediate[(int)fStart]);
                         }
                     }
                 }
@@ -354,7 +411,9 @@ namespace GameOfLife
                             }
                             else
                             {
-                                if (CellGrid[i, j + 1].State != Cell.CellState.Bullet && CellGrid[i, j + 1].State != Cell.CellState.Ship)
+                                if (CellGrid[i, j + 1].State != Cell.CellState.Bullet
+                                    && CellGrid[i, j + 1].State != Cell.CellState.Ship
+                                    && CellGrid[i, j + 1].NextState != Cell.CellState.Ship)
                                 {
                                     CellGrid[i, j].NextState = Cell.CellState.Dead;
                                 }
@@ -367,6 +426,7 @@ namespace GameOfLife
                     }
                 }
 
+                // Change state
                 for (int i = 0; i < CellGrid.Width; ++i)
                 {
                     for (int j = 0; j < CellGrid.Height; ++j)
@@ -483,7 +543,21 @@ namespace GameOfLife
                 
                 if (KeysDown[(int)Keys.ControlKey])
                 { 
-                   CellGrid[vecCannon.x, vecCannon.y - 1].State = Cell.CellState.Bullet;
+                    foreach (vec2 cannon in listVecCannons)
+                    {
+                        if (CellGrid[cannon.x, cannon.y - 1].State != Cell.CellState.Ship)
+                        {
+                            CellGrid[cannon.x, cannon.y - 1].State = Cell.CellState.Bullet;
+                        }
+                        else if (CellGrid[cannon.x, cannon.y - 2].State != Cell.CellState.Ship)
+                        {
+                            CellGrid[cannon.x, cannon.y - 2].State = Cell.CellState.Bullet;
+                        }
+                        else if (CellGrid[cannon.x, cannon.y - 3].State != Cell.CellState.Ship)
+                        {
+                            CellGrid[cannon.x, cannon.y - 3].State = Cell.CellState.Bullet;
+                        }
+                    }
                 }
 
             }
