@@ -32,7 +32,7 @@ namespace LibTest
 
             // Draw vector
             g.DrawString("<" + vecTest.x + ", " + vecTest.y + ">\n" + String.Format("{0:n}", vecTest.magnitude()) + "/" + String.Format("{0:n}", vecTest.angle()) + "rad", new Font("Segoe UI", 12), Brushes.Black, 50, -50);
-            g.DrawLine(Pens.Orange, 0, 0, (float)vecTest.x, (float)vecTest.y);
+            g.DrawLine(Pens.Orange, vec2.zero, vecTest);
 
             vecTest = vecTest.rotate(fRotateSpeed);
         }

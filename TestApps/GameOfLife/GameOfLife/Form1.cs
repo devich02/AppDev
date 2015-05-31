@@ -17,7 +17,6 @@ namespace GameOfLife
 
         class Cell
         {
-
             public enum CellState
             {
                 Alive,
@@ -29,12 +28,81 @@ namespace GameOfLife
 
             public bool m_ShipHere = false; // if m_ShipHere, always count as alive and don't update (not used yet)
 
-            public Cell()
-            {
+            public Cell(){}
+        }
 
+        class Grid
+        {
+            private Cell[,] m_GridCells;
+            private int m_Width;
+            private int m_Height;
+
+            public int Width {  get { return m_Width; } }
+            public int Height {  get { return m_Height; } }
+
+            private delegate Cell GetCellInDirection(int i, int j);
+
+            public Cell TopLeft(int i, int j) { return this[i - 1, j - 1]; }
+            public Cell Top(int i, int j) { return this[i, j - 1]; }
+            public Cell TopRight(int i, int j) { return this[i + 1, j - 1]; }
+            public Cell Right(int i, int j) { return this[i + 1, j]; }
+            public Cell BottomRight(int i, int j) { return this[i + 1, j + 1]; }
+            public Cell Bottom(int i, int j) { return this[i, j + 1]; }
+            public Cell BottomLeft(int i, int j) { return this[i - 1, j + 1]; }
+            public Cell Left(int i, int j) { return this[i - 1, j]; }
+
+            private GetCellInDirection[] m_AllDirections;
+
+            public Grid() { }
+            public Grid(int width, int height)
+            {
+                m_AllDirections = new GetCellInDirection[]
+                {
+                    TopLeft,
+                    Top,
+                    TopRight,
+                    Right,
+                    BottomRight,
+                    Bottom,
+                    BottomLeft,
+                    Left
+                };
+
+                m_Width = width;
+                m_Height = height;
+
+                m_GridCells = new Cell[width, height];
+                for (int i = 0; i < width; ++i)
+                {
+                    for (int j = 0; j < height; ++j)
+                    {
+                        m_GridCells[i, j] = new Cell();
+                    }
+                }
             }
 
+            private int WrapMod(int x, int m)
+            {
+                int r = x % m;
+                return r < 0 ? r + m : r;
+            }
+            public Cell this[int i, int j]
+            {
+                get
+                {
+                    return m_GridCells[WrapMod(i, m_Width), WrapMod(j, m_Height)];
+                }
+            }
 
+            public int AliveNeighbors(int i, int j)
+            {
+                int aliveCount = 0;
+                for (int k = 0; k < m_AllDirections.Length; ++k)
+                {
+                    aliveCount += m_AllDirections[k](i, j).m_State == Cell.CellState.Alive ? 1 : 0;
+                }
+                return aliveCount;
+            }
         }
 
         class Rule
@@ -123,7 +191,7 @@ namespace GameOfLife
 
         }
 
-        Cell[][] CellGrid;
+        Grid CellGrid;
         Ship PlayerShip;
         Rule R;
 
@@ -134,36 +202,10 @@ namespace GameOfLife
             R = new Rule(); // this is the default constructor --> Game of Life Rule
 
             this.ClientSize = new Size(800, 700);
-            CellGrid = new Cell[800 / GridSquareSize][];
-            for (int i = 0; i < CellGrid.Length; ++i)
-            {
-                CellGrid[i] = new Cell[600 / GridSquareSize];
-            }
-
-            for (int i = 0; i < CellGrid.Length; ++i)
-            {
-                for ( int j = 0; j < CellGrid[i].Length; ++j)
-                {
-                    CellGrid[i][j] = new Cell();
-                }
-            }
+            CellGrid = new Grid(800 / GridSquareSize, 600 / GridSquareSize);
 
             // initialize ship
             PlayerShip = new Ship(20,20);
-        }
-
-        Cell GetCell(int x, int y)
-        {
-            if (x < 0)
-                x = CellGrid.Length + x;
-            if (x >= CellGrid.Length)
-                x -= CellGrid.Length;
-            if (y < 0)
-                y = CellGrid[x].Length + y;
-            if (y >= CellGrid[x].Length)
-                y -= CellGrid[x].Length;
-
-            return CellGrid[x][y];
         }
 
         private void timer1_Tick(object sender, EventArgs e)
@@ -191,21 +233,17 @@ namespace GameOfLife
 
             if (mdown)
             {
-                if (rx >= 0 && rx < CellGrid.Length &&
-                    ry >= 0 && ry < CellGrid[rx].Length)
-                {
-                    if (mbutton == MouseButtons.Left)
-                        CellGrid[rx][ry].m_State = Cell.CellState.Alive;
-                    else
-                        CellGrid[rx][ry].m_State = Cell.CellState.Dead;
-                }
+                if (mbutton == MouseButtons.Left)
+                    CellGrid[rx, ry].m_State = Cell.CellState.Alive;
+                else
+                    CellGrid[rx, ry].m_State = Cell.CellState.Dead;
             }
 
-            for (int i = 0; i < CellGrid.Length; ++i)
+            for (int i = 0; i < CellGrid.Width; ++i)
             {
-                for (int j = 0; j < CellGrid[i].Length; ++j)
+                for (int j = 0; j < CellGrid.Height; ++j)
                 {
-                    if (CellGrid[i][j].m_State == Cell.CellState.Alive)
+                    if (CellGrid[i, j].m_State == Cell.CellState.Alive)
                     {
                         e.Graphics.FillRectangle(Brushes.LightGreen, i * GridSquareSize, j * GridSquareSize, GridSquareSize, GridSquareSize);
                     }
@@ -230,69 +268,22 @@ namespace GameOfLife
             ////////////////////////////////
             if (brunning  && (DateTime.Now.Ticks - llLastUpdate) > llIterationDelay)
             {
-
                 llLastUpdate = DateTime.Now.Ticks;
 
-                for (int i = 0; i < CellGrid.Length; ++i)
+                for (int i = 0; i < CellGrid.Width; ++i)
                 {
-                    for (int j = 0; j < CellGrid[i].Length; ++j)
+                    for (int j = 0; j < CellGrid.Height; ++j)
                     {
-                        Cell top_left = GetCell(i - 1, j - 1);
-                        Cell top = GetCell(i, j - 1);
-                        Cell top_right = GetCell(i + 1, j - 1);
-
-                        Cell right = GetCell(i + 1, j);
-
-                        Cell bottom_right = GetCell(i + 1, j + 1);
-                        Cell bottom = GetCell(i, j + 1);
-                        Cell bottom_left = GetCell(i - 1, j + 1);
-
-                        Cell left = GetCell(i - 1, j);
-
-                        int count = 0;
-
-                        count += (top_left != null && top_left.m_State == Cell.CellState.Alive) ? 1 : 0;
-                        count += (top != null && top.m_State == Cell.CellState.Alive) ? 1 : 0;
-                        count += (top_right != null && top_right.m_State == Cell.CellState.Alive) ? 1 : 0;
-
-                        count += (right != null && right.m_State == Cell.CellState.Alive) ? 1 : 0;
-
-                        count += (bottom_right != null && bottom_right.m_State == Cell.CellState.Alive) ? 1 : 0;
-                        count += (bottom != null && bottom.m_State == Cell.CellState.Alive) ? 1 : 0;
-                        count += (bottom_left != null && bottom_left.m_State == Cell.CellState.Alive) ? 1 : 0;
-
-                        count += (left != null && left.m_State == Cell.CellState.Alive) ? 1 : 0;
-
-                        CellGrid[i][j].m_NextState = R.GetNewCellStateFromRule(count, CellGrid[i][j].m_State);
-                        
-                        /*
-                        if ((count == 2 || count == 3) && CellGrid[i][j].m_State == Cell.CellState.Alive)
-                        {
-                            CellGrid[i][j].m_NextState = Cell.CellState.Alive;
-                        }
-                        else if (count < 2)
-                        {
-                            CellGrid[i][j].m_NextState = Cell.CellState.Dead;
-                        }
-                        else if (count > 3)
-                        {
-                            CellGrid[i][j].m_NextState = Cell.CellState.Dead;
-                        }
-                        else if (count == 3 && CellGrid[i][j].m_State == Cell.CellState.Dead)
-                        {
-                            CellGrid[i][j].m_NextState = Cell.CellState.Alive;
-                        }
-                        */
-                     
+                        CellGrid[i, j].m_NextState = R.GetNewCellStateFromRule(CellGrid.AliveNeighbors(i, j), CellGrid[i, j].m_State);
                     }
                 }
 
 
-                for (int i =0; i < CellGrid.Length; ++i)
+                for (int i =0; i < CellGrid.Width; ++i)
                 {
-                    for (int j = 0; j < CellGrid[i].Length; ++j)
+                    for (int j = 0; j < CellGrid.Height; ++j)
                     {
-                        CellGrid[i][j].m_State = CellGrid[i][j].m_NextState;
+                        CellGrid[i, j].m_State = CellGrid[i, j].m_NextState;
                     }
                 }
             }
@@ -301,44 +292,6 @@ namespace GameOfLife
             {
                 brunning = false;
             }
-
-            /*
-            for (int i = 0; i < CellGrid.Length; ++i)
-            {
-                for (int j = 0; j < CellGrid[i].Length; ++j)
-                {
-                    Cell top_left = GetCell(i - 1, j - 1);
-                    Cell top = GetCell(i, j - 1);
-                    Cell top_right = GetCell(i + 1, j - 1);
-
-                    Cell right = GetCell(i + 1, j);
-
-                    Cell bottom_right = GetCell(i + 1, j + 1);
-                    Cell bottom = GetCell(i, j + 1);
-                    Cell bottom_left = GetCell(i - 1, j + 1);
-
-                    Cell left = GetCell(i - 1, j);
-
-                    int count = 0;
-
-                    count += (top_left != null && top_left.m_State == Cell.CellState.Alive) ? 1 : 0;
-                    count += (top != null && top.m_State == Cell.CellState.Alive) ? 1 : 0;
-                    count += (top_right != null && top_right.m_State == Cell.CellState.Alive) ? 1 : 0;
-
-                    count += (right != null && right.m_State == Cell.CellState.Alive) ? 1 : 0;
-
-                    count += (bottom_right != null && bottom_right.m_State == Cell.CellState.Alive) ? 1 : 0;
-                    count += (bottom != null && bottom.m_State == Cell.CellState.Alive) ? 1 : 0;
-                    count += (bottom_left != null && bottom_left.m_State == Cell.CellState.Alive) ? 1 : 0;
-
-                    count += (left != null && left.m_State == Cell.CellState.Alive) ? 1 : 0;
-
-                    e.Graphics.DrawString("" + count, new Font("Courier New", 8), Brushes.Black, i * GridSquareSize, j * GridSquareSize);
-
-
-                }
-            }*/
-
         }
 
         private void Form1_MouseDown(object sender, MouseEventArgs e)
