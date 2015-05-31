@@ -25,15 +25,19 @@ namespace GameOfLife
             {
                 Alive,
                 Dead,
-                Ship // Also alive
+                Ship, // Also alive
+                Bullet
             }
 
-            public CellState m_State = CellState.Dead;
-            public CellState m_NextState = CellState.Dead;
+            public CellState State { get; set; }
+            public CellState NextState { get; set; }
 
-            public bool Alive {  get { return m_State == CellState.Alive || m_State == CellState.Ship; } }
+            public bool Alive {  get { return State == CellState.Alive || State == CellState.Ship; } }
 
-            public Cell(){}
+            public Cell()
+            {
+                State = CellState.Dead;
+            }
         }
 
         class Grid
@@ -114,7 +118,7 @@ namespace GameOfLife
                 int shipCount = 0;
                 for (int k = 0; k < m_AllDirections.Length; ++k)
                 {
-                    shipCount += m_AllDirections[k](i, j).m_State == Cell.CellState.Ship ? 1 : 0;
+                    shipCount += m_AllDirections[k](i, j).State == Cell.CellState.Ship ? 1 : 0;
                 }
                 return shipCount;
             }
@@ -171,22 +175,10 @@ namespace GameOfLife
 
             /* should implement custom rule creation (i.e., anything other than classic) here */
 
-            public Cell.CellState GetNewCellStateFromRule(int numNeighbors, int shipNeighbors, bool isAlive)
+            public Cell.CellState GetNewCellStateFromRule(int numNeighbors, bool isAlive)
             {
                 /* interface between cell and rule when updating cells */
-                Cell.CellState state = isAlive ? m_RuleBehavior[1][numNeighbors] : m_RuleBehavior[0][numNeighbors];
-                if (state == Cell.CellState.Alive)
-                {
-                    if (shipNeighbors >= (numNeighbors / 2))
-                    {
-                        return Cell.CellState.Ship;
-                    }
-                    else
-                    {
-                        return Cell.CellState.Alive;
-                    }
-                }
-                return Cell.CellState.Dead;
+                return isAlive ? m_RuleBehavior[1][numNeighbors] : m_RuleBehavior[0][numNeighbors];
             }
         }
 
@@ -258,28 +250,32 @@ namespace GameOfLife
                 {
                     if (bPaintShip)
                     {
-                        CellGrid[rx, ry].m_State = Cell.CellState.Ship;
+                        CellGrid[rx, ry].State = Cell.CellState.Ship;
                     }
                     else
                     {
-                        CellGrid[rx, ry].m_State = Cell.CellState.Alive;
+                        CellGrid[rx, ry].State = Cell.CellState.Alive;
                     }
                 }
                 else
-                    CellGrid[rx, ry].m_State = Cell.CellState.Dead;
+                    CellGrid[rx, ry].State = Cell.CellState.Dead;
             }
 
             for (int i = 0; i < CellGrid.Width; ++i)
             {
                 for (int j = 0; j < CellGrid.Height; ++j)
                 {
-                    if (CellGrid[i, j].m_State == Cell.CellState.Alive)
+                    if (CellGrid[i, j].State == Cell.CellState.Alive)
                     {
                         e.Graphics.FillRectangle(Brushes.LightGreen, i * GridSquareSize, j * GridSquareSize, GridSquareSize, GridSquareSize);
                     }
-                    else if (CellGrid[i, j].m_State == Cell.CellState.Ship)
+                    else if (CellGrid[i, j].State == Cell.CellState.Ship)
                     {
                         e.Graphics.FillRectangle(Brushes.Black, i * GridSquareSize, j * GridSquareSize, GridSquareSize, GridSquareSize);
+                    }
+                    else if (CellGrid[i, j].State == Cell.CellState.Bullet)
+                    {
+                        e.Graphics.FillRectangle(Brushes.Orange, i * GridSquareSize, j * GridSquareSize, GridSquareSize, GridSquareSize);
                     }
                 }
             }
@@ -301,11 +297,73 @@ namespace GameOfLife
             {
                 llLastUpdate = DateTime.Now.Ticks;
 
+                vec2 vecCannon = new vec2(0, CellGrid.Height);
+
+                // Regular update loop
                 for (int i = 0; i < CellGrid.Width; ++i)
                 {
                     for (int j = 0; j < CellGrid.Height; ++j)
                     {
-                        CellGrid[i, j].m_NextState = R.GetNewCellStateFromRule(CellGrid.AliveNeighbors(i, j), CellGrid.ShipNeighbors(i, j), CellGrid[i, j].Alive);
+                        Cell.CellState currentState = CellGrid[i, j].State;
+                        
+                        if (currentState != Cell.CellState.Bullet)
+                        {
+                            Cell.CellState nextState = R.GetNewCellStateFromRule(CellGrid.AliveNeighbors(i, j), CellGrid[i, j].Alive);
+
+                            if (nextState == Cell.CellState.Dead)
+                            {
+                                CellGrid[i, j].NextState = Cell.CellState.Dead;
+                            }
+                            else if (currentState == Cell.CellState.Ship)
+                            {
+                                if (j < vecCannon.y)
+                                {
+                                    vecCannon = new vec2(i, j);
+                                }
+                                CellGrid[i, j].NextState = Cell.CellState.Ship;
+                            }
+                            else if (currentState == Cell.CellState.Dead)
+                            {
+                                if (CellGrid.ShipNeighbors(i, j) > CellGrid.AliveNeighbors(i, j) / 2)
+                                {
+                                    CellGrid[i, j].NextState = Cell.CellState.Ship;
+                                }
+                                else
+                                {
+                                    CellGrid[i, j].NextState = Cell.CellState.Alive;
+                                }
+                            }
+                            else
+                            {
+                                CellGrid[i, j].NextState = Cell.CellState.Alive;
+                            }
+                        }
+                    }
+                }
+
+                // Bullet update loop
+                for (int i = 0; i < CellGrid.Width; ++i)
+                {
+                    for (int j = 0; j < CellGrid.Height; ++j)
+                    {
+                        if (CellGrid[i, j].State == Cell.CellState.Bullet)
+                        {
+                            if (j == 0)
+                            {
+                                CellGrid[i, j].NextState = Cell.CellState.Dead;
+                            }
+                            else
+                            {
+                                if (CellGrid[i, j + 1].State != Cell.CellState.Bullet && CellGrid[i, j + 1].State != Cell.CellState.Ship)
+                                {
+                                    CellGrid[i, j].NextState = Cell.CellState.Dead;
+                                }
+                                if (CellGrid[i, j - 1].NextState != Cell.CellState.Ship)
+                                {
+                                    CellGrid[i, j - 1].NextState = Cell.CellState.Bullet;
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -313,7 +371,7 @@ namespace GameOfLife
                 {
                     for (int j = 0; j < CellGrid.Height; ++j)
                     {
-                        CellGrid[i, j].m_State = CellGrid[i, j].m_NextState;
+                        CellGrid[i, j].State = CellGrid[i, j].NextState;
                     }
                 }
 
@@ -325,13 +383,13 @@ namespace GameOfLife
                     {
                         for (int j = 0; j < CellGrid.Height; ++j)
                         {
-                            if (CellGrid[i, j].m_State == Cell.CellState.Ship)
+                            if (CellGrid[i, j].State == Cell.CellState.Ship)
                             {
-                                if (CellGrid[i + 1, j].m_State != Cell.CellState.Ship)
+                                if (CellGrid[i + 1, j].State != Cell.CellState.Ship)
                                 {
-                                    CellGrid[i, j].m_NextState = Cell.CellState.Dead;
+                                    CellGrid[i, j].NextState = Cell.CellState.Dead;
                                 }
-                                CellGrid[i - 1, j].m_NextState = Cell.CellState.Ship;
+                                CellGrid[i - 1, j].NextState = Cell.CellState.Ship;
                             }
                         }
                     }
@@ -340,7 +398,7 @@ namespace GameOfLife
                     {
                         for (int j = 0; j < CellGrid.Height; ++j)
                         {
-                            CellGrid[i, j].m_State = CellGrid[i, j].m_NextState;
+                            CellGrid[i, j].State = CellGrid[i, j].NextState;
                         }
                     }
                 }
@@ -351,13 +409,13 @@ namespace GameOfLife
                     {
                         for (int j = 0; j < CellGrid.Height; ++j)
                         {
-                            if (CellGrid[i, j].m_State == Cell.CellState.Ship)
+                            if (CellGrid[i, j].State == Cell.CellState.Ship)
                             {
-                                if (CellGrid[i - 1, j].m_State != Cell.CellState.Ship)
+                                if (CellGrid[i - 1, j].State != Cell.CellState.Ship)
                                 {
-                                    CellGrid[i, j].m_NextState = Cell.CellState.Dead;
+                                    CellGrid[i, j].NextState = Cell.CellState.Dead;
                                 }
-                                CellGrid[i + 1, j].m_NextState = Cell.CellState.Ship;
+                                CellGrid[i + 1, j].NextState = Cell.CellState.Ship;
                             }
                         }
                     }
@@ -366,7 +424,7 @@ namespace GameOfLife
                     {
                         for (int j = 0; j < CellGrid.Height; ++j)
                         {
-                            CellGrid[i, j].m_State = CellGrid[i, j].m_NextState;
+                            CellGrid[i, j].State = CellGrid[i, j].NextState;
                         }
                     }
                 }
@@ -377,13 +435,13 @@ namespace GameOfLife
                     {
                         for (int j = 0; j < CellGrid.Height; ++j)
                         {
-                            if (CellGrid[i, j].m_State == Cell.CellState.Ship)
+                            if (CellGrid[i, j].State == Cell.CellState.Ship)
                             {
-                                if (CellGrid[i, j + 1].m_State != Cell.CellState.Ship)
+                                if (CellGrid[i, j + 1].State != Cell.CellState.Ship)
                                 {
-                                    CellGrid[i, j].m_NextState = Cell.CellState.Dead;
+                                    CellGrid[i, j].NextState = Cell.CellState.Dead;
                                 }
-                                CellGrid[i, j - 1].m_NextState = Cell.CellState.Ship;
+                                CellGrid[i, j - 1].NextState = Cell.CellState.Ship;
                             }
                         }
                     }
@@ -392,7 +450,7 @@ namespace GameOfLife
                     {
                         for (int j = 0; j < CellGrid.Height; ++j)
                         {
-                            CellGrid[i, j].m_State = CellGrid[i, j].m_NextState;
+                            CellGrid[i, j].State = CellGrid[i, j].NextState;
                         }
                     }
                 }
@@ -403,13 +461,13 @@ namespace GameOfLife
                     {
                         for (int j = 0; j < CellGrid.Height; ++j)
                         {
-                            if (CellGrid[i, j].m_State == Cell.CellState.Ship)
+                            if (CellGrid[i, j].State == Cell.CellState.Ship)
                             {
-                                if (CellGrid[i, j - 1].m_State != Cell.CellState.Ship)
+                                if (CellGrid[i, j - 1].State != Cell.CellState.Ship)
                                 {
-                                    CellGrid[i, j].m_NextState = Cell.CellState.Dead;
+                                    CellGrid[i, j].NextState = Cell.CellState.Dead;
                                 }
-                                CellGrid[i, j + 1].m_NextState = Cell.CellState.Ship;
+                                CellGrid[i, j + 1].NextState = Cell.CellState.Ship;
                             }
                         }
                     }
@@ -418,9 +476,14 @@ namespace GameOfLife
                     {
                         for (int j = 0; j < CellGrid.Height; ++j)
                         {
-                            CellGrid[i, j].m_State = CellGrid[i, j].m_NextState;
+                            CellGrid[i, j].State = CellGrid[i, j].NextState;
                         }
                     }
+                }
+                
+                if (KeysDown[(int)Keys.ControlKey])
+                { 
+                   CellGrid[vecCannon.x, vecCannon.y - 1].State = Cell.CellState.Bullet;
                 }
 
             }
