@@ -22,7 +22,7 @@ namespace LibTest
             public Platform(vec2 position)
             {
                 m_Position = position;
-                CheckRect = new RectangleF(position.x, position.y - 2, 20, 2);
+                CheckRect = new RectangleF(position.x, position.y - 2, 15, 2);
             }
             public Platform(int x, int y) : this(new vec2(x, y))
             {
@@ -30,7 +30,7 @@ namespace LibTest
 
             public void Draw(Graphics g)
             {
-                g.DrawLine(Pens.Black, m_Position, m_Position + new vec2(20, 0));
+                g.DrawLine(Pens.Black, m_Position, m_Position + new vec2(15, 0));
                 g.FillRectangle(new SolidBrush(Color.FromArgb(100, Color.Green)), CheckRect);
             }
         }
@@ -45,8 +45,19 @@ namespace LibTest
                 new Platform (50, 80),
                 new Platform (65, 80),
                 new Platform (85, 60),
-                new Platform (100, 60)
+                new Platform (100, 60),
+                new Platform(115, 60),
+                new Platform (120, 65),
+                new Platform (125, 70),
+                new Platform (170, 70),
+                new Platform (190, 70),
+                new Platform (210, 70),
+                new Platform (250, 70),
+                new Platform (290, 70),
+                new Platform (305, 60),
             };
+
+            public float MostRightPoint {  get { return platforms[platforms.Length - 1].CheckRect.X + 15; } }
 
             public void Draw(Graphics g)
             {
@@ -119,7 +130,7 @@ namespace LibTest
             }
             public void Draw(Graphics g)
             {
-                if (m_Body.X > 115)
+                if (m_Body.X > m_Game.MostRightPoint)
                 {
                     g.FillEllipse(Brushes.Green, m_Body);
                 }
@@ -204,26 +215,28 @@ namespace LibTest
             {
                 float m_X;
                 int m_InstructionCount;
-                public ComparePlayers(float x, int instructionCount)
+                float m_MostRight;
+                public ComparePlayers(float x, int instructionCount, float mostRight)
                 {
                     m_X = x;
                     m_InstructionCount = instructionCount;
+                    m_MostRight = mostRight;
                 }
                 public int CompareTo(object obj)
                 {
                     ComparePlayers cp = (ComparePlayers)obj;
-                    if (m_X > 115 && cp.m_X > 115)
+                    if (m_X > m_MostRight && cp.m_X > m_MostRight)
                     {
                         return m_InstructionCount < cp.m_InstructionCount ? 1 : (m_InstructionCount == cp.m_InstructionCount ? 0 : -1);
                     }
                     if (m_X > cp.m_X) return 1;
-                    if (m_X == cp.m_X) return m_InstructionCount < cp.m_InstructionCount ? 1 : (m_InstructionCount == cp.m_InstructionCount ? 0 : -1);
+                    if (m_X == cp.m_X) return 0;
                     return -1;
                 }
             }
             public IComparable GetFitness()
             {
-                return new ComparePlayers(m_Body.X, m_Actions.Length);
+                return new ComparePlayers(m_Body.X, m_Actions.Length, m_Game.MostRightPoint);
             }
 
             public IEnumerable<IEvolutionaryAgent> BreedWith(IEvolutionaryAgent agentB)
@@ -234,45 +247,62 @@ namespace LibTest
                 A.m_bHasBred = true;
                 B.m_bHasBred = true;
 
-                int sectionCounts = r.Next(5, 20);
-                int actionCount = (A.m_Actions.Length + B.m_Actions.Length) / 2;
-
-                Player C = new Player();
-
-                C.m_Actions = new Action[actionCount];
-                C.m_ActionStates = new ActionState[actionCount];
-
-                for (int i = 0; i < actionCount;)
+                for (int c = 0; c < 2; ++c)
                 {
-                    if (r.Next(2) == 0 && i + sectionCounts < actionCount && i + sectionCounts < A.m_Actions.Length)
+                    int sectionCounts = r.Next(5, 20);
+                    int actionCount = Math.Max((A.m_Actions.Length + B.m_Actions.Length) / 2 + sectionCounts, sectionCounts * 8);
+
+                    Player C = new Player();
+
+                    C.m_Actions = new Action[actionCount];
+                    C.m_ActionStates = new ActionState[actionCount];
+
+                    int maxFitness = Math.Max((int)(A.m_Body.X + B.m_Body.X), 2);
+                    int cutoff = Math.Max((int)(A.m_Body.X), 1);
+
+                    for (int i = 0; i < actionCount;)
                     {
-                        for (int j = 0; j < sectionCounts; ++j, ++i)
+                        if (r.Next(maxFitness) < cutoff && i + sectionCounts < actionCount && i + sectionCounts < A.m_Actions.Length)
                         {
-                            C.m_Actions[i] = A.m_Actions[i];
-                            C.m_ActionStates[i] = A.m_ActionStates[i];
+                            for (int j = 0; j < sectionCounts; ++j, ++i)
+                            {
+                                C.m_Actions[i] = A.m_Actions[i];
+                                C.m_ActionStates[i] = A.m_ActionStates[i];
+                            }
+                        }
+                        else if (i + sectionCounts < B.m_Actions.Length && i + sectionCounts < actionCount)
+                        {
+                            for (int j = 0; j < sectionCounts; ++j, ++i)
+                            {
+                                C.m_Actions[i] = B.m_Actions[i];
+                                C.m_ActionStates[i] = B.m_ActionStates[i];
+                            }
+                        }
+                        else
+                        {
+                            if (i == 0)
+                            {
+                                for (; i < actionCount; ++i)
+                                {
+                                    C.m_Actions[i] = (Action)((Action[])Enum.GetValues(typeof(Action)))[r.Next(3)];
+                                    C.m_ActionStates[i] = (ActionState)((ActionState[])Enum.GetValues(typeof(ActionState)))[r.Next(2)];
+                                }
+                            }
+                            else
+                            {
+                                Array.Resize(ref C.m_Actions, i);
+                                Array.Resize(ref C.m_ActionStates, i);
+                            }
+                            break;
                         }
                     }
-                    else if (i + sectionCounts < B.m_Actions.Length && i + sectionCounts < actionCount )
-                    {
-                        for (int j = 0; j < sectionCounts; ++j, ++i)
-                        {
-                            C.m_Actions[i] = B.m_Actions[i];
-                            C.m_ActionStates[i] = B.m_ActionStates[i];
-                        }
-                    }
-                    else
-                    {
-                        Array.Resize(ref C.m_Actions, i);
-                        Array.Resize(ref C.m_ActionStates, i);
-                        break;
-                    }
+
+                    C.m_Game = m_Game;
+
+                    yield return C;
                 }
 
-                C.m_Game = m_Game;
-
-                yield return C;
-
-                if (r.Next(10000) == 0)
+                if (r.Next(100) == 0)
                 {
                     yield return new Player(m_Game);
                 }
@@ -292,6 +322,9 @@ namespace LibTest
             {
                 return !m_bHasBred;
             }
+
+            public float GetX() { return m_Body.X; }
+            public int GetActionCount() { return m_Actions.Length; }
         }
 
         Game game = new Game();
@@ -303,9 +336,12 @@ namespace LibTest
         public string LibTest(out bool testResult)
         {
             testResult = true;
-            return "";
+            if (engine.GlobalMaximum == null)
+                return "";
+            return "Best: " + ((Player)engine.GlobalMaximum).GetX() + "/" + ((int)game.MostRightPoint) + " in " + ((Player)engine.GlobalMaximum).GetActionCount() + " actions";
         }
 
+        int yoffset = 50;
         public void PaintTest(Graphics g, Rectangle viewPort)
         {
             for (int i = 0; i < IterationCount; ++i)
@@ -314,9 +350,7 @@ namespace LibTest
             }
 
             int x = 50;
-            int y = 50;
-
-            int xlim = 800;
+            int y = yoffset;
 
             IReadOnlyList<EvEngine.AgentTracker> agents = engine.CurrentPopulation;
             foreach (EvEngine.AgentTracker agent in agents)
@@ -324,13 +358,14 @@ namespace LibTest
                 g.ResetTransform();
                 g.TranslateTransform(x, y);
 
+                g.DrawRectangle(Pens.Blue, 0, 0, game.MostRightPoint, 100);
                 game.Draw(g);
                 ((Player)agent.Agent).Draw(g);
 
-                if ((x += 100) >= xlim)
+                if ((x += (int)(game.MostRightPoint + 10)) + game.MostRightPoint >= viewPort.X + viewPort.Width)
                 {
-                    x = 100;
-                    y += 100;
+                    x = 50;
+                    y += 120;
                 }
             }
 
@@ -338,6 +373,23 @@ namespace LibTest
 
         public void KeyDown(KeyEventArgs e)
         {
+            if (e.KeyCode == Keys.Down)
+            {
+                IterationCount = Math.Max(IterationCount - 10, 1);
+            }
+            if (e.KeyCode == Keys.Up)
+            {
+                IterationCount += 10;
+            }
+
+            if (e.KeyCode == Keys.W)
+            {
+                yoffset += 10;
+            }
+            if (e.KeyCode == Keys.S)
+            {
+                yoffset -= 10;
+            }
         }
 
         public void KeyUp(KeyEventArgs e)
@@ -346,11 +398,12 @@ namespace LibTest
 
         public void Initialize()
         {
-            IterationCount = 5;
-            engine.PopulationMax = 32;
+            IterationCount = 100;
+            engine.PopulationMax = 150;
+            engine.PopulationMaximumGenerationalAge = 3;
             // 25% prune rate
             engine.BreedPruneLeastFitPercent = .25;
-            engine.Initialize<Player>(10, game);
+            engine.Initialize<Player>(50, game);
         }
     }
 }

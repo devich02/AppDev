@@ -11,13 +11,15 @@ namespace MachineLearning
     {
         public class AgentTracker
         {
-            public IEvolutionaryAgent Agent { get; set; }
-            public ulong Age { get; set; }
+            public IEvolutionaryAgent Agent { get; internal set; }
+            public ulong Age { get; internal set; }
+            public ulong GenerationalAge { get; internal set; }
             public AgentTracker() { }
             public AgentTracker(IEvolutionaryAgent agent)
             {
                 this.Agent = agent;
                 this.Age = 0;
+                this.GenerationalAge = 0;
             }
         }
 
@@ -38,6 +40,26 @@ namespace MachineLearning
         /// The number of agents in the population.
         /// </summary>
         public long Population { get { return m_listAgents.Count; } }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the global maximum should be kept. Default true.
+        /// </summary>
+        public bool PopulationKeepGlobalMax { get; set; }
+
+        /// <summary>
+        /// Gets or sets the maximum age of any member of the population. Once a member has reached this age, it will be deleted no matter what. If this value is 0, it is ignored.
+        /// </summary>
+        public ulong PopulationMaximumAge { get; set; }
+
+        /// <summary>
+        /// Gets or sets the maximum number of generations a member of the population can be alive fore. If this value is 0, it is ignored.
+        /// </summary>
+        public ulong PopulationMaximumGenerationalAge { get; set; }
+
+        /// <summary>
+        /// Gets the global maximum (best fit solution thus far).
+        /// </summary>
+        public IEvolutionaryAgent GlobalMaximum { get; private set; }
 
         /// <summary>
         /// For agents elgible for breeding, this is the chance that they will breed.
@@ -101,6 +123,8 @@ namespace MachineLearning
             BreedSelectionAlgorithm = BreedScanType.MostFitPermutations;
             BreedAlgorithm = BreedingType.Generations;
             BreedPruneLeastFitPercent = .05;
+            GlobalMaximum = null;
+            PopulationKeepGlobalMax = true;
         }
 
         public void Initialize<T>(int initialPopulationCount, Object objParam) where T : IEvolutionaryAgent, new()
@@ -127,9 +151,13 @@ namespace MachineLearning
 
             for (int i = 0; i < m_listAgents.Count;)
             {
-                if (!m_listAgents[i].Agent.GetIsAlive())
+                if ((!PopulationKeepGlobalMax || m_listAgents[i].Agent != GlobalMaximum) 
+                    && 
+                    (!m_listAgents[i].Agent.GetIsAlive()
+                    || (PopulationMaximumGenerationalAge != 0 && m_listAgents[i].GenerationalAge > PopulationMaximumGenerationalAge)
+                    || (PopulationMaximumAge != 0 && m_listAgents[i].Age > PopulationMaximumAge)))
                 {
-                    if (m_listAgents.Count - 1 <= PopulationMin)
+                    if (m_listAgents.Count - 1 < PopulationMin)
                     {
                         m_listBreedableAgents.Add(m_listAgents[i].Agent);
                     }
@@ -154,20 +182,35 @@ namespace MachineLearning
             {
                 m_listBreedableAgents.Sort((Comparison<IEvolutionaryAgent>)((IEvolutionaryAgent a, IEvolutionaryAgent b) => b.GetFitness().CompareTo(a.GetFitness())));
 
+                m_listAgents.ForEach(a => ++a.GenerationalAge);
+
+                if (GlobalMaximum == null)
+                {
+                    GlobalMaximum = m_listBreedableAgents[0];
+                }
+                else if (m_listBreedableAgents[0].GetFitness().CompareTo(GlobalMaximum.GetFitness()) == 1)
+                {
+                    GlobalMaximum = m_listBreedableAgents[0];
+                }
+
                 if (BreedAlgorithm == BreedingType.Generations && BreedPruneLeastFitPercent < 1)
                 {
                     int removeCount = (int)(BreedPruneLeastFitPercent * m_listBreedableAgents.Count);
-                    for (int i = 0; i < removeCount; ++i)
+
+                    if (m_listAgents.Count - removeCount >= PopulationMin)
                     {
-                        for (int j = 0; j < m_listAgents.Count; ++j)
+                        for (int i = 0; i < removeCount; ++i)
                         {
-                            if (m_listAgents[j].Agent == m_listBreedableAgents[m_listBreedableAgents.Count -1])
+                            for (int j = 0; j < m_listAgents.Count; ++j)
                             {
-                                m_listAgents.RemoveAt(j);
-                                break;
+                                if (m_listAgents[j].Agent == m_listBreedableAgents[m_listBreedableAgents.Count - 1])
+                                {
+                                    m_listAgents.RemoveAt(j);
+                                    break;
+                                }
                             }
+                            m_listBreedableAgents.RemoveAt(m_listBreedableAgents.Count - 1);
                         }
-                        m_listBreedableAgents.RemoveAt(m_listBreedableAgents.Count - 1);
                     }
                 }
 

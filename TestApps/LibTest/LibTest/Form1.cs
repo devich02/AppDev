@@ -36,7 +36,7 @@ namespace LibTest
 
             if (resultOutput)
             {
-                e.Graphics.DrawString(listLibraryTests[iCurrentTest].GetType().FullName + "\nLib tests: Passed", new Font("Segoe UI", 10), Brushes.Green, 10, 10);
+                e.Graphics.DrawString(listLibraryTests[iCurrentTest].GetType().FullName + "\nLib tests: Passed [" + resultString + "]", new Font("Segoe UI", 10), Brushes.Green, 10, 10);
             }
             else
             {
