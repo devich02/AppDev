@@ -12,7 +12,6 @@ namespace LibTest
 {
     public partial class Form1 : Form
     {
-
         List<ILibTest> listLibraryTests = new List<ILibTest>();
         int iCurrentTest = 0;
 
