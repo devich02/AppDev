@@ -44,6 +44,19 @@ namespace MachineLearning
         /// </summary>
         public double BreedChance { get; set; }
 
+        public enum BreedingType
+        {
+            /// <summary>
+            /// Waits for the entire generation to be ready to breed before breeding
+            /// </summary>
+            Generations,
+
+            /// <summary>
+            /// Breeds as soon as at least two individuals are capabale
+            /// </summary>
+            Dynamic
+        }
+
         public enum BreedScanType
         {
             /// <summary>
@@ -61,9 +74,14 @@ namespace MachineLearning
         }
 
         /// <summary>
-        /// Gets or sets the breeding selection algorithm. See the enum BreedScanType for more information about these affect the algorithm. Default is MostFitPermutations.
+        /// Gets or sets the breeding selection algorithm. See the enum BreedScanType for more information about how these affect the algorithm. Default is MostFitPermutations.
         /// </summary>
         public BreedScanType BreedSelectionAlgorithm { get; set; }
+
+        /// <summary>
+        /// Gets or sets the breeding algorithm. See the enum BreedingType for more information about how these affect the algorithm. Default is Generations.
+        /// </summary>
+        public BreedingType BreedingAlgorithm { get; set; }
 
         /// <summary>
         /// The number of times Update has been called for this population.
@@ -76,6 +94,7 @@ namespace MachineLearning
             PopulationMin = 0;
             BreedChance = 100;
             BreedSelectionAlgorithm = BreedScanType.MostFitPermutations;
+            BreedingAlgorithm = BreedingType.Generations;
         }
 
         public void Initialize<T>(int initialPopulationCount, Object objParam) where T : IEvolutionaryAgent, new()
@@ -98,10 +117,16 @@ namespace MachineLearning
                 agent.Agent.Update(objParam);
             }
 
+            m_listBreedableAgents.Clear();
+
             for (int i = 0; i < m_listAgents.Count;)
             {
                 if (!m_listAgents[i].Agent.GetIsAlive())
                 {
+                    if (m_listAgents.Count - 1 <= PopulationMin)
+                    {
+                        m_listBreedableAgents.Add(m_listAgents[i].Agent);
+                    }
                     m_listAgents.RemoveAt(i);
                 }
                 else
@@ -110,7 +135,6 @@ namespace MachineLearning
                 }
             }
 
-            m_listBreedableAgents.Clear();
             foreach (AgentTracker agent in m_listAgents)
             {
                 if (agent.Agent.GetCanBreed())
@@ -119,7 +143,8 @@ namespace MachineLearning
                 }
             }
 
-            if (m_listBreedableAgents.Count > 1 && Population < PopulationMax)
+            if (((BreedingAlgorithm == BreedingType.Dynamic && m_listBreedableAgents.Count > 1)  || (BreedingAlgorithm == BreedingType.Generations && m_listBreedableAgents.Count == Population))
+                && Population < PopulationMax)
             {
                 m_listBreedableAgents.Sort((Comparison<IEvolutionaryAgent>)((IEvolutionaryAgent a, IEvolutionaryAgent b) => b.GetFitness().CompareTo(a.GetFitness())));
 
@@ -146,7 +171,7 @@ namespace MachineLearning
                     List<IEvolutionaryAgent> listAParents = new List<IEvolutionaryAgent>();
                     listAParents.Add(m_listBreedableAgents[0]);
                     IEvolutionaryAgent BParent = m_listBreedableAgents[1];
-                    int iNextBParent = 2;
+                    int iNextBParent = 1;
 
                     do
                     {
@@ -162,14 +187,23 @@ namespace MachineLearning
                             }
                         }
 
-                        ++iNextBParent;
-                        if (iNextBParent == m_listBreedableAgents.Count || Population >= PopulationMax)
+                        if (Population >= PopulationMax)
                         {
                             break;
                         }
+                        else if (++iNextBParent == m_listBreedableAgents.Count)
+                        {
+                            listAParents.Add(BParent);
+                        }
+                        else if (iNextBParent > m_listBreedableAgents.Count)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            BParent = m_listBreedableAgents[iNextBParent];
+                        }
 
-                        listAParents.Add(BParent);
-                        BParent = m_listBreedableAgents[iNextBParent];
                     } while (true);
                 }
             }
