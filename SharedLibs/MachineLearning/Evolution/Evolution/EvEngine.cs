@@ -81,7 +81,12 @@ namespace MachineLearning
         /// <summary>
         /// Gets or sets the breeding algorithm. See the enum BreedingType for more information about how these affect the algorithm. Default is Generations.
         /// </summary>
-        public BreedingType BreedingAlgorithm { get; set; }
+        public BreedingType BreedAlgorithm { get; set; }
+
+        /// <summary>
+        /// Gets or sets the prune percentage. Valid when BreedAlgorithm = Generations, will simply remove the lower BreedPruneLeastFitPercent percentage of the population. Default is 5%.
+        /// </summary>
+        public double BreedPruneLeastFitPercent { get; set; }
 
         /// <summary>
         /// The number of times Update has been called for this population.
@@ -94,7 +99,8 @@ namespace MachineLearning
             PopulationMin = 0;
             BreedChance = 100;
             BreedSelectionAlgorithm = BreedScanType.MostFitPermutations;
-            BreedingAlgorithm = BreedingType.Generations;
+            BreedAlgorithm = BreedingType.Generations;
+            BreedPruneLeastFitPercent = .05;
         }
 
         public void Initialize<T>(int initialPopulationCount, Object objParam) where T : IEvolutionaryAgent, new()
@@ -143,10 +149,27 @@ namespace MachineLearning
                 }
             }
 
-            if (((BreedingAlgorithm == BreedingType.Dynamic && m_listBreedableAgents.Count > 1)  || (BreedingAlgorithm == BreedingType.Generations && m_listBreedableAgents.Count == Population))
+            if (((BreedAlgorithm == BreedingType.Dynamic && m_listBreedableAgents.Count > 1)  || (BreedAlgorithm == BreedingType.Generations && m_listBreedableAgents.Count == Population))
                 && Population < PopulationMax)
             {
                 m_listBreedableAgents.Sort((Comparison<IEvolutionaryAgent>)((IEvolutionaryAgent a, IEvolutionaryAgent b) => b.GetFitness().CompareTo(a.GetFitness())));
+
+                if (BreedAlgorithm == BreedingType.Generations && BreedPruneLeastFitPercent < 1)
+                {
+                    int removeCount = (int)(BreedPruneLeastFitPercent * m_listBreedableAgents.Count);
+                    for (int i = 0; i < removeCount; ++i)
+                    {
+                        for (int j = 0; j < m_listAgents.Count; ++j)
+                        {
+                            if (m_listAgents[j].Agent == m_listBreedableAgents[m_listBreedableAgents.Count -1])
+                            {
+                                m_listAgents.RemoveAt(j);
+                                break;
+                            }
+                        }
+                        m_listBreedableAgents.RemoveAt(m_listBreedableAgents.Count - 1);
+                    }
+                }
 
                 if (BreedSelectionAlgorithm == BreedScanType.MostFitToLeastFit)
                 {

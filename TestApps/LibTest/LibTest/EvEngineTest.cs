@@ -106,7 +106,7 @@ namespace LibTest
                 m_Game = game;
                 m_Body = new RectangleF(0, 90, 10, 10);
 
-                int iActionCount = r.Next(0, 10000);
+                int iActionCount = r.Next(1, 10000);
 
                 m_Actions = new Action[iActionCount];
                 m_ActionStates = new ActionState[iActionCount];
@@ -214,10 +214,10 @@ namespace LibTest
                     ComparePlayers cp = (ComparePlayers)obj;
                     if (m_X > 115 && cp.m_X > 115)
                     {
-                        return m_InstructionCount < cp.m_InstructionCount ? 1 : -1;
+                        return m_InstructionCount < cp.m_InstructionCount ? 1 : (m_InstructionCount == cp.m_InstructionCount ? 0 : -1);
                     }
                     if (m_X > cp.m_X) return 1;
-                    if (m_X == cp.m_X) return m_InstructionCount < cp.m_InstructionCount ? 1 : -1;
+                    if (m_X == cp.m_X) return m_InstructionCount < cp.m_InstructionCount ? 1 : (m_InstructionCount == cp.m_InstructionCount ? 0 : -1);
                     return -1;
                 }
             }
@@ -346,8 +346,10 @@ namespace LibTest
 
         public void Initialize()
         {
-            IterationCount = 10;
-            engine.PopulationMax = 100;
+            IterationCount = 5;
+            engine.PopulationMax = 32;
+            // 25% prune rate
+            engine.BreedPruneLeastFitPercent = .25;
             engine.Initialize<Player>(10, game);
         }
     }
