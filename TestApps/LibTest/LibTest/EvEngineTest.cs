@@ -55,6 +55,16 @@ namespace LibTest
                 new Platform (250, 70),
                 new Platform (290, 70),
                 new Platform (305, 60),
+                new Platform (345, 60),
+                new Platform (385, 60),
+                new Platform (425, 60),
+                new Platform (465, 60),
+                new Platform (505, 60),
+                new Platform (545, 60),
+                new Platform (585, 60),
+                new Platform (625, 60),
+                new Platform (665, 60),
+                new Platform (705, 60),
             };
 
             public float MostRightPoint {  get { return platforms[platforms.Length - 1].CheckRect.X + 15; } }
@@ -117,7 +127,7 @@ namespace LibTest
                 m_Game = game;
                 m_Body = new RectangleF(0, 90, 10, 10);
 
-                int iActionCount = r.Next(1, 10000);
+                int iActionCount = r.Next(1000, 50000);
 
                 m_Actions = new Action[iActionCount];
                 m_ActionStates = new ActionState[iActionCount];
@@ -249,8 +259,7 @@ namespace LibTest
 
                 for (int c = 0; c < 2; ++c)
                 {
-                    int sectionCounts = r.Next(5, 20);
-                    int actionCount = Math.Max((A.m_Actions.Length + B.m_Actions.Length) / 2 + sectionCounts, sectionCounts * 8);
+                    int actionCount = Math.Max((A.m_Actions.Length + B.m_Actions.Length) / 2 + r.Next(-100, 100), 50);
 
                     Player C = new Player();
 
@@ -262,38 +271,51 @@ namespace LibTest
 
                     for (int i = 0; i < actionCount;)
                     {
-                        if (r.Next(maxFitness) < cutoff && i + sectionCounts < actionCount && i + sectionCounts < A.m_Actions.Length)
+                        int sectionCounts = r.Next(5, 100);
+
+                        if (r.Next(100) == 0)
                         {
-                            for (int j = 0; j < sectionCounts; ++j, ++i)
+                            for (int j = 0; j < sectionCounts && i < actionCount; ++j, ++i)
                             {
-                                C.m_Actions[i] = A.m_Actions[i];
-                                C.m_ActionStates[i] = A.m_ActionStates[i];
-                            }
-                        }
-                        else if (i + sectionCounts < B.m_Actions.Length && i + sectionCounts < actionCount)
-                        {
-                            for (int j = 0; j < sectionCounts; ++j, ++i)
-                            {
-                                C.m_Actions[i] = B.m_Actions[i];
-                                C.m_ActionStates[i] = B.m_ActionStates[i];
+                                C.m_Actions[i] = (Action)((Action[])Enum.GetValues(typeof(Action)))[r.Next(3)];
+                                C.m_ActionStates[i] = (ActionState)((ActionState[])Enum.GetValues(typeof(ActionState)))[r.Next(2)];
                             }
                         }
                         else
-                        {
-                            if (i == 0)
+                        { 
+                            if (r.Next(maxFitness) < cutoff && i + sectionCounts < actionCount && i + sectionCounts < A.m_Actions.Length)
                             {
-                                for (; i < actionCount; ++i)
+                                for (int j = 0; j < sectionCounts; ++j, ++i)
                                 {
-                                    C.m_Actions[i] = (Action)((Action[])Enum.GetValues(typeof(Action)))[r.Next(3)];
-                                    C.m_ActionStates[i] = (ActionState)((ActionState[])Enum.GetValues(typeof(ActionState)))[r.Next(2)];
+                                    C.m_Actions[i] = A.m_Actions[i];
+                                    C.m_ActionStates[i] = A.m_ActionStates[i];
+                                }
+                            }
+                            else if (i + sectionCounts < B.m_Actions.Length && i + sectionCounts < actionCount)
+                            {
+                                for (int j = 0; j < sectionCounts; ++j, ++i)
+                                {
+                                    C.m_Actions[i] = B.m_Actions[i];
+                                    C.m_ActionStates[i] = B.m_ActionStates[i];
                                 }
                             }
                             else
                             {
-                                Array.Resize(ref C.m_Actions, i);
-                                Array.Resize(ref C.m_ActionStates, i);
+                                if (i == 0)
+                                {
+                                    for (; i < actionCount; ++i)
+                                    {
+                                        C.m_Actions[i] = (Action)((Action[])Enum.GetValues(typeof(Action)))[r.Next(3)];
+                                        C.m_ActionStates[i] = (ActionState)((ActionState[])Enum.GetValues(typeof(ActionState)))[r.Next(2)];
+                                    }
+                                }
+                                else
+                                {
+                                    Array.Resize(ref C.m_Actions, i);
+                                    Array.Resize(ref C.m_ActionStates, i);
+                                }
+                                break;
                             }
-                            break;
                         }
                     }
 
@@ -365,7 +387,10 @@ namespace LibTest
                 if ((x += (int)(game.MostRightPoint + 10)) + game.MostRightPoint >= viewPort.X + viewPort.Width)
                 {
                     x = 50;
-                    y += 120;
+                    if ((y += 120) > viewPort.Height)
+                    {
+                        break;
+                    }
                 }
             }
 
@@ -380,6 +405,14 @@ namespace LibTest
             if (e.KeyCode == Keys.Up)
             {
                 IterationCount += 10;
+            }
+            if (e.KeyCode == Keys.T)
+            {
+                IterationCount = Math.Max(IterationCount - 5, 1);
+            }
+            if (e.KeyCode == Keys.G)
+            {
+                IterationCount += 5;
             }
 
             if (e.KeyCode == Keys.W)
@@ -398,11 +431,13 @@ namespace LibTest
 
         public void Initialize()
         {
-            IterationCount = 100;
-            engine.PopulationMax = 150;
+            IterationCount = 10000;
+            engine.PopulationMax = 10000;
+            //engine.BreedAlgorithm = EvEngine.BreedingType.Dynamic;
+            //engine.PopulationMaximumAge = 10000;
             engine.PopulationMaximumGenerationalAge = 3;
             // 25% prune rate
-            engine.BreedPruneLeastFitPercent = .25;
+            engine.BreedPruneLeastFitPercent = .50;
             engine.Initialize<Player>(50, game);
         }
     }
