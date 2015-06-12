@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Drawing;
 
 using VecLib;
+using System.Windows.Forms;
 
 namespace LibTest
 {
@@ -36,5 +37,12 @@ namespace LibTest
 
             vecTest = vecTest.rotate(fRotateSpeed);
         }
+        public void KeyUp(KeyEventArgs e)
+        { }
+        public void KeyDown(KeyEventArgs e)
+        { }
+
+        public void Initialize()
+        { }
     }
 }

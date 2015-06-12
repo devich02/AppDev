@@ -47,6 +47,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EvEngineTest.cs" />
     <Compile Include="Form1.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -84,6 +85,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\SharedLibs\MachineLearning\Evolution\Evolution\Evolution.csproj">
+      <Project>{3e02d4b2-0443-4b7e-b039-69050e52960d}</Project>
+      <Name>Evolution</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\..\SharedLibs\VecLib\VecLib\VecLib.csproj">
       <Project>{8075b895-100d-4e56-ae25-e6f0c90e5a74}</Project>
       <Name>VecLib</Name>
